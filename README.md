@@ -1,6 +1,6 @@
 # Welfare Management System
 
-**Intelligent Welfare Management System for University Employee Welfare Administration**
+**Intelligent Welfare Management System for Employee Welfare Administration**
 
 A centralized web-based Welfare Management System designed to streamline and automate welfare administration processes for mid-sized universities and institutions.
 
