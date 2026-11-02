@@ -36,7 +36,7 @@ public class DashboardsController : ControllerBase
     [Authorize(Policy = "HROnly")]
     public async Task<IActionResult> GetHRDashboard()
     {
-        var stats = await _dashboardService.GetHRDashboardStatsAsync();
+        var stats = await _dashboardService.GetHRDashboardStatsAsync(int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
         return Ok(stats);
     }
 
@@ -44,7 +44,7 @@ public class DashboardsController : ControllerBase
     [Authorize(Policy = "CommitteeOnly")]
     public async Task<IActionResult> GetCommitteeDashboard()
     {
-        var stats = await _dashboardService.GetCommitteeDashboardStatsAsync();
+        var stats = await _dashboardService.GetCommitteeDashboardStatsAsync(int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
         return Ok(stats);
     }
 
@@ -52,7 +52,7 @@ public class DashboardsController : ControllerBase
     [Authorize(Policy = "ManagementOnly")]
     public async Task<IActionResult> GetManagementDashboard()
     {
-        var stats = await _dashboardService.GetManagementDashboardStatsAsync();
+        var stats = await _dashboardService.GetManagementDashboardStatsAsync(int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!));
         return Ok(stats);
     }
 

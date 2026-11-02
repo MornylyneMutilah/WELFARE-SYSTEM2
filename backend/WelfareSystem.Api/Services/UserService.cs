@@ -18,6 +18,20 @@ public class UserService : IUserService
         _passwordHasher = passwordHasher;
     }
 
+    public async Task<UserResponse?> UpdateProfileAsync(int id, UpdateProfileRequest request)
+    {
+        var user = await _userRepository.GetByIdWithIncludesAsync(id);
+        if (user == null || !user.IsActive) return null;
+        var existing = await _userRepository.GetByEmailAsync(request.Email);
+        if (existing != null && existing.Id != id) return null;
+        user.Email = request.Email;
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.UpdateAsync(user);
+        return MapToResponse(user);
+    }
+
     public async Task<UserResponse?> GetUserByIdAsync(int id)
     {
         var user = await _userRepository.GetByIdWithIncludesAsync(id);
@@ -138,25 +152,6 @@ public class UserService : IUserService
         return true;
     }
 
-    public async Task<UserResponse?> UpdateProfileAsync(int id, UpdateProfileRequest request)
-    {
-        var user = await _userRepository.GetByIdAsync(id);
-        if (user == null)
-        {
-            return null;
-        }
-
-        user.FirstName = request.FirstName;
-        user.LastName = request.LastName;
-        user.Email = request.Email;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _userRepository.UpdateAsync(user);
-
-        var updatedUser = await _userRepository.GetByIdWithIncludesAsync(id);
-        return MapToResponse(updatedUser!);
-    }
-
     private UserResponse MapToResponse(User user)
     {
         return new UserResponse
@@ -171,6 +166,7 @@ public class UserService : IUserService
             RoleId = user.RoleId,
             RoleName = user.Role?.Name ?? string.Empty,
             IsActive = user.IsActive,
+            HireDate = user.HireDate,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };

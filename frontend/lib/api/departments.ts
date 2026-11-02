@@ -20,6 +20,9 @@ export interface UpdateDepartmentRequest {
 }
 
 export const departmentsApi = {
+  getRegistrationDepartments: async (): Promise<Pick<DepartmentResponse, 'id' | 'name'>[]> => {
+    return (await apiClient.get<Pick<DepartmentResponse, 'id' | 'name'>[]>('/auth/registration-departments')).data;
+  },
   getAllDepartments: async (): Promise<DepartmentResponse[]> => {
     const response = await apiClient.get<DepartmentResponse[]>('/departments');
     return response.data;

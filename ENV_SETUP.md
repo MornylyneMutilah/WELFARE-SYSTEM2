@@ -5,7 +5,7 @@
 Create a `.env.local` file in the `frontend` directory with the following content:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_API_URL=http://localhost:5249/api
 ```
 
 ## Backend Environment Variables
@@ -17,7 +17,7 @@ The backend uses `appsettings.json` and `appsettings.Development.json` for non-s
 In PowerShell, set the connection string and a development JWT signing key before starting the API:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=welfare_system;Username=postgres;Password=YOUR_POSTGRES_PASSWORD"
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=WelfareDb;Username=postgres;Password=YOUR_POSTGRES_PASSWORD"
 $env:Jwt__SecretKey = "replace-with-a-random-key-of-at-least-32-characters"
 ```
 

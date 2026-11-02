@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { usersApi } from '@/lib/api/users';
 import AppShell from '@/components/layout/AppShell';
@@ -16,12 +16,6 @@ export default function ProfilePage() {
   const [message, setMessage] = useState('');
   const [tone, setTone] = useState<'success' | 'error'>('success');
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '' });
-
-  useEffect(() => {
-    if (user) {
-      setFormData({ firstName: user.firstName, lastName: user.lastName, email: user.email });
-    }
-  }, [user]);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -56,7 +50,10 @@ export default function ProfilePage() {
         <div className="mb-6 flex justify-between">
           <h2 className="text-lg font-bold text-gray-900">Personal information</h2>
           {!isEditing && (
-            <Button variant="outlined" onClick={() => setIsEditing(true)}>
+            <Button variant="outlined" onClick={() => {
+              if (user) setFormData({ firstName: user.firstName, lastName: user.lastName, email: user.email });
+              setIsEditing(true);
+            }}>
               Edit
             </Button>
           )}

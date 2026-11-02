@@ -20,15 +20,14 @@ export interface AnomalySummary {
   severityCounts: Record<string, number>;
   typeCounts: Record<string, number>;
   totalAnomalies: number;
+  statusCounts: Record<string, number>;
 }
 
 export interface ResolveRequest {
-  resolvedBy: number;
   notes: string;
 }
 
 export interface DismissRequest {
-  resolvedBy: number;
   notes: string;
 }
 

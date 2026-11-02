@@ -11,6 +11,12 @@ using WelfareSystem.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true)
+        .AddEnvironmentVariables();
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -47,7 +53,10 @@ builder.Services.AddScoped<IAnomalyRuleRepository, AnomalyRuleRepository>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<ExternalAuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<UserAdministrationService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IWelfareProgramService, WelfareProgramService>();
 builder.Services.AddScoped<IEligibilityRuleService, EligibilityRuleService>();
@@ -74,6 +83,13 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.Events = new JwtBearerEvents {
+        OnTokenValidated = async validation => {
+            var db = validation.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            if (!await AccountTokenValidator.IsCurrentAsync(validation.Principal, db))
+                validation.Fail("This account or session is no longer active. Please sign in again.");
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

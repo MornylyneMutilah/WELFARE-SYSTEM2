@@ -26,7 +26,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         _userRepository = userRepository;
     }
 
-    public async Task<Anomaly?> DetectApplicationFrequencyAnomalyAsync(int userId)
+    public async Task<Anomaly?> DetectApplicationFrequencyAnomalyAsync(int userId, int? applicationId = null)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return null;
@@ -34,7 +34,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         // Get applications from the last 30 days
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         var recentApplications = await _context.WelfareApplications
-            .Where(a => a.UserId == userId && a.SubmittedAt >= thirtyDaysAgo)
+            .Where(a => a.UserId == userId && a.Status != 1 && a.Status != 10 && a.SubmittedAt >= thirtyDaysAgo)
             .CountAsync();
 
         // Threshold: More than 3 applications in 30 days is suspicious
@@ -43,6 +43,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             var anomaly = new Anomaly
             {
                 AnomalyType = "ApplicationFrequency",
+                ApplicationId = applicationId,
                 Severity = recentApplications > 6 ? "High" : "Medium",
                 Description = $"User has submitted {recentApplications} applications in the last 30 days, which exceeds the normal threshold of 3.",
                 UserId = userId,
@@ -57,7 +58,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 })
             };
 
-            return await _anomalyRepository.AddAsync(anomaly);
+            return await SaveOnceAsync(anomaly);
         }
 
         return null;
@@ -70,7 +71,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
 
         // Get average amount for this program
         var programAverage = await _context.WelfareApplications
-            .Where(a => a.WelfareProgramId == application.WelfareProgramId && a.Status != 0)
+            .Where(a => a.Id != applicationId && a.WelfareProgramId == application.WelfareProgramId && a.Status != 1 && a.Status != 10)
             .AverageAsync(a => (double?)a.RequestedAmount) ?? 0;
 
         // Calculate percentage difference
@@ -100,21 +101,23 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 })
             };
 
-            return await _anomalyRepository.AddAsync(anomaly);
+            return await SaveOnceAsync(anomaly);
         }
 
         return null;
     }
 
-    public async Task<Anomaly?> DetectDuplicateApplicationAsync(int userId, int welfareProgramId)
+    public async Task<Anomaly?> DetectDuplicateApplicationAsync(int userId, int welfareProgramId, int? applicationId = null)
     {
         // Check for existing applications for the same program in the last 7 days
         var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-        var existingApplication = await _context.WelfareApplications
-            .Where(a => a.UserId == userId && a.WelfareProgramId == welfareProgramId && a.SubmittedAt >= sevenDaysAgo)
-            .FirstOrDefaultAsync();
+        var recentApplications = await _context.WelfareApplications
+            .Where(a => a.UserId == userId && a.WelfareProgramId == welfareProgramId && a.Id != applicationId && a.Status != 1 && a.Status != 10 && a.SubmittedAt >= sevenDaysAgo)
+            .OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id)
+            .ToListAsync();
+        var existingApplication = recentApplications.FirstOrDefault();
 
-        if (existingApplication != null)
+        if (existingApplication != null && recentApplications.Count >= (applicationId.HasValue ? 1 : 2))
         {
             var anomaly = new Anomaly
             {
@@ -122,7 +125,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 Severity = "Medium",
                 Description = $"User has already submitted an application for this program on {existingApplication.SubmittedAt:yyyy-MM-dd}.",
                 UserId = userId,
-                ApplicationId = existingApplication.Id,
+                ApplicationId = applicationId ?? existingApplication.Id,
                 Status = "Open",
                 DetectedAt = DateTime.UtcNow,
                 AnomalyScore = 0.7,
@@ -134,25 +137,25 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 })
             };
 
-            return await _anomalyRepository.AddAsync(anomaly);
+            return await SaveOnceAsync(anomaly);
         }
 
         return null;
     }
 
-    public async Task<Anomaly?> DetectCrossProgramAnomalyAsync(int userId)
+    public async Task<Anomaly?> DetectCrossProgramAnomalyAsync(int userId, int? applicationId = null)
     {
         // Check if user has applications to multiple similar programs within a short time
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         var recentApplications = await _context.WelfareApplications
             .Include(a => a.WelfareProgram)
-            .Where(a => a.UserId == userId && a.SubmittedAt >= thirtyDaysAgo)
+            .Where(a => a.UserId == userId && a.Status != 1 && a.Status != 10 && a.SubmittedAt >= thirtyDaysAgo)
             .ToListAsync();
 
         // Group by program category
         var categoryGroups = recentApplications
             .GroupBy(a => a.WelfareProgram?.Category)
-            .Where(g => g.Count() > 1)
+            .Where(g => g.Select(a => a.WelfareProgramId).Distinct().Count() > 1)
             .ToList();
 
         if (categoryGroups.Any())
@@ -161,6 +164,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             var anomaly = new Anomaly
             {
                 AnomalyType = "CrossProgramAnomaly",
+                ApplicationId = applicationId,
                 Severity = "Medium",
                 Description = $"User has submitted applications to multiple programs in the same category: {categories}.",
                 UserId = userId,
@@ -174,7 +178,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 })
             };
 
-            return await _anomalyRepository.AddAsync(anomaly);
+            return await SaveOnceAsync(anomaly);
         }
 
         return null;
@@ -183,12 +187,17 @@ public class AnomalyDetectionService : IAnomalyDetectionService
     public async Task<IEnumerable<Anomaly>> DetectAllAnomaliesForApplicationAsync(int applicationId)
     {
         var application = await _applicationRepository.GetByIdAsync(applicationId);
-        if (application == null) return Enumerable.Empty<Anomaly>();
+        if (application == null || application.Status == 1) return Enumerable.Empty<Anomaly>();
+
+        await using var transaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync() : null;
+        // Serialize checks for one employee so concurrent submissions cannot create duplicate flags.
+        await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({application.UserId})");
 
         var anomalies = new List<Anomaly>();
 
         // Check for frequency anomaly
-        var frequencyAnomaly = await DetectApplicationFrequencyAnomalyAsync(application.UserId);
+        var frequencyAnomaly = await DetectApplicationFrequencyAnomalyAsync(application.UserId, applicationId);
         if (frequencyAnomaly != null) anomalies.Add(frequencyAnomaly);
 
         // Check for amount anomaly
@@ -196,14 +205,25 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         if (amountAnomaly != null) anomalies.Add(amountAnomaly);
 
         // Check for duplicate application
-        var duplicateAnomaly = await DetectDuplicateApplicationAsync(application.UserId, application.WelfareProgramId);
+        var duplicateAnomaly = await DetectDuplicateApplicationAsync(application.UserId, application.WelfareProgramId, applicationId);
         if (duplicateAnomaly != null) anomalies.Add(duplicateAnomaly);
 
         // Check for cross-program anomaly
-        var crossProgramAnomaly = await DetectCrossProgramAnomalyAsync(application.UserId);
+        var crossProgramAnomaly = await DetectCrossProgramAnomalyAsync(application.UserId, applicationId);
         if (crossProgramAnomaly != null) anomalies.Add(crossProgramAnomaly);
 
+        application.AnomalyFlags = JsonSerializer.Serialize(anomalies.Select(a => a.AnomalyType).Distinct());
+        await _context.SaveChangesAsync();
+        if (transaction != null) await transaction.CommitAsync();
         return anomalies;
+    }
+
+    private async Task<Anomaly> SaveOnceAsync(Anomaly anomaly)
+    {
+        // Re-running an investigation must preserve its existing resolution and audit history.
+        var existing = await _context.Anomalies.FirstOrDefaultAsync(a =>
+            a.AnomalyType == anomaly.AnomalyType && a.ApplicationId == anomaly.ApplicationId && a.UserId == anomaly.UserId);
+        return existing ?? await _anomalyRepository.AddAsync(anomaly);
     }
 
     public async Task MarkAsResolvedAsync(int anomalyId, int resolvedBy, string notes)

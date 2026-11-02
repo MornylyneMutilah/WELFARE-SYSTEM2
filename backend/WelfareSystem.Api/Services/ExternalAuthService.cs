@@ -319,8 +319,8 @@ public class ExternalAuthService
     {
         return new LoginResponse
         {
-            Token = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name),
-            RefreshToken = _tokenService.GenerateRefreshToken(user.Id),
+            Token = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name, user.TokenVersion),
+            RefreshToken = _tokenService.GenerateRefreshToken(user.Id, user.TokenVersion),
             User = new UserDto
             {
                 Id = user.Id,

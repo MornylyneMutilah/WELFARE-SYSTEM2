@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WelfareSystem.Api.Data;
 using WelfareSystem.Api.Models.Entities;
+using WelfareSystem.Api.Services;
+using WelfareSystem.Api.Models.DTOs.User;
 
 namespace WelfareSystem.Api.Controllers;
 
@@ -21,10 +23,12 @@ public class RoleRequestsController : ControllerBase
     };
 
     private readonly AppDbContext _context;
+    private readonly UserAdministrationService _administration;
 
-    public RoleRequestsController(AppDbContext context)
+    public RoleRequestsController(AppDbContext context, UserAdministrationService administration)
     {
         _context = context;
+        _administration = administration;
     }
 
     [HttpGet]
@@ -50,6 +54,8 @@ public class RoleRequestsController : ControllerBase
     [HttpPost("{id}/decision")]
     public async Task<IActionResult> Decide(int id, [FromBody] DecisionRequest request)
     {
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(81542001)");
         var item = await _context.RoleAccessRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == id);
         if (item == null)
         {
@@ -77,8 +83,13 @@ public class RoleRequestsController : ControllerBase
                 return BadRequest(new { message = "Role does not exist." });
             }
 
-            item.User.RoleId = role.Id;
-            item.User.UpdatedAt = DateTime.UtcNow;
+            try {
+                await _administration.UpdateAsync(item.UserId, new UpdateUserRequest {
+                    Email = item.User.Email, FirstName = item.User.FirstName, LastName = item.User.LastName,
+                    EmployeeId = item.User.EmployeeId, DepartmentId = item.User.DepartmentId, RoleId = role.Id,
+                    HireDate = item.User.HireDate, IsActive = item.User.IsActive, Reason = $"Approved role request #{item.Id}"
+                }, reviewerId);
+            } catch (UserAdministrationException error) { return StatusCode(error.Status, new { message = error.Message }); }
             item.Status = "Approved";
         }
         else
@@ -89,6 +100,7 @@ public class RoleRequestsController : ControllerBase
         item.ReviewedByUserId = reviewerId;
         item.ReviewedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(new { message = "Updated." });
     }
 

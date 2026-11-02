@@ -53,8 +53,8 @@ public class AuthService : IAuthService
 
         var department = await _departmentRepository.GetByIdAsync(user.DepartmentId);
 
-        var token = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name);
-        var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
+        var token = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name, user.TokenVersion);
+        var refreshToken = _tokenService.GenerateRefreshToken(user.Id, user.TokenVersion);
 
         return new LoginResponse
         {
@@ -135,8 +135,8 @@ public class AuthService : IAuthService
             return null;
         }
 
-        var token = _tokenService.GenerateAccessToken(userWithRelations.Id, userWithRelations.Email, userWithRelations.Role.Name);
-        var refreshToken = _tokenService.GenerateRefreshToken(userWithRelations.Id);
+        var token = _tokenService.GenerateAccessToken(userWithRelations.Id, userWithRelations.Email, userWithRelations.Role.Name, userWithRelations.TokenVersion);
+        var refreshToken = _tokenService.GenerateRefreshToken(userWithRelations.Id, userWithRelations.TokenVersion);
 
         return new LoginResponse
         {
@@ -164,6 +164,10 @@ public class AuthService : IAuthService
 
         var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
         var jwtToken = tokenHandler.ReadJwtToken(refreshToken);
+        if (jwtToken.Claims.FirstOrDefault(c => c.Type == "type")?.Value != "refresh") return null;
+        var versionText = jwtToken.Claims.FirstOrDefault(c => c.Type == "ver")?.Value;
+        if (versionText != null && !int.TryParse(versionText, out _)) return null;
+        var tokenVersion = versionText == null ? 0 : int.Parse(versionText);
         
         var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim == null)
@@ -177,7 +181,7 @@ public class AuthService : IAuthService
         }
 
         var user = await _userRepository.GetByIdAsync(userId);
-        if (user == null || !user.IsActive)
+        if (user == null || !user.IsActive || user.TokenVersion != tokenVersion)
         {
             return null;
         }
@@ -185,8 +189,8 @@ public class AuthService : IAuthService
         // GetByIdAsync now includes Role and Department
         var department = user.Department;
 
-        var newToken = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name);
-        var newRefreshToken = _tokenService.GenerateRefreshToken(user.Id);
+        var newToken = _tokenService.GenerateAccessToken(user.Id, user.Email, user.Role.Name, user.TokenVersion);
+        var newRefreshToken = _tokenService.GenerateRefreshToken(user.Id, user.TokenVersion);
 
         return new LoginResponse
         {

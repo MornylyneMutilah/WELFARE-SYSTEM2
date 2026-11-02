@@ -1,33 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useLiveData } from '@/lib/hooks/useLiveData';
 import Link from 'next/link';
-import { applicationsApi, type ApplicationResponse } from '@/lib/api/applications';
+import { applicationsApi } from '@/lib/api/applications';
 import AppShell from '@/components/layout/AppShell';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<ApplicationResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, error: loadError, loading: isLoading, refresh: load } = useLiveData(applicationsApi.getApplications);
+  const applications = data ?? [];
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
-
-  const load = async () => {
-    try {
-      setApplications(await applicationsApi.getApplications());
-    } catch {
-      setError('Failed to load applications');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
   const submit = async (id: number) => {
     setBusyId(id);
     try {
@@ -43,9 +29,9 @@ export default function ApplicationsPage() {
 
   return (
     <AppShell title="My applications" description="Only your own applications are listed. Status changes are enforced on the server.">
-      {error && (
+      {(error || loadError) && (
         <div className="mb-4">
-          <Alert tone="error">{error}</Alert>
+          <Alert tone="error">{error || loadError}</Alert>
         </div>
       )}
       <div className="mb-4">

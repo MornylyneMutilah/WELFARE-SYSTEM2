@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, type UserDto } from '../api/auth';
 import { tokenUtils } from './tokenUtils';
+import { usersApi } from '../api/users';
 
 interface AuthContextType {
   user: UserDto | null;
@@ -33,15 +34,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing token on mount
-    const storedToken = tokenUtils.getToken();
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Hydrate browser storage after mount, preserving the server's initial render.
+    let active = true;
+    queueMicrotask(async () => {
+      if (!active) return;
+      try {
+        const storedToken = tokenUtils.getToken();
+        const storedUser = localStorage.getItem('user');
+        if (storedToken && storedUser) {
+          const verified = await usersApi.getCurrentUser();
+          if (!active) return;
+          const verifiedUser: UserDto = {
+            id: verified.id, email: verified.email, firstName: verified.firstName, lastName: verified.lastName,
+            employeeId: verified.employeeId, role: verified.roleName, department: verified.departmentName,
+          };
+          setToken(storedToken);
+          setUser(verifiedUser);
+          localStorage.setItem('user', JSON.stringify(verifiedUser));
+        }
+      } catch {
+        tokenUtils.clearAll();
+        localStorage.removeItem('user');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    });
+    return () => { active = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -60,14 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const completeExternalLogin = async (code: string) => {
+  const completeExternalLogin = useCallback(async (code: string) => {
     const response = await authApi.exchangeExternal(code);
     tokenUtils.setToken(response.token);
     tokenUtils.setRefreshToken(response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
     setToken(response.token);
     setUser(response.user);
-  };
+  }, []);
 
   const register = async (data: {
     email: string;

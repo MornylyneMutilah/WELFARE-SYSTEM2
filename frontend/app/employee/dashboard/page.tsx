@@ -1,35 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useLiveData } from '@/lib/hooks/useLiveData';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import AnomalyList from '@/components/anomaly/AnomalyList';
-import { applicationsApi, type ApplicationResponse } from '@/lib/api/applications';
+import { applicationsApi } from '@/lib/api/applications';
 import { dashboardsApi } from '@/lib/api/dashboards';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
-  const [applications, setApplications] = useState<ApplicationResponse[]>([]);
-  const [stats, setStats] = useState<{ totalApplications?: number; pendingApplications?: number; approvedApplications?: number }>({});
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    applicationsApi
-      .getApplications()
-      .then(setApplications)
-      .catch(() => setError('Could not load your applications.'));
-    dashboardsApi.employee().then(setStats).catch(() => undefined);
-  }, []);
-
-  const pendingCount = stats.pendingApplications ?? applications.filter(a => a.statusName === 'Pending').length;
-  const approvedCount = stats.approvedApplications ?? applications.filter(a => a.statusName === 'Approved').length;
-
+  const applicationsState = useLiveData(applicationsApi.getApplications);
+  const statsState = useLiveData(dashboardsApi.employee);
+  const applications = applicationsState.data ?? [];
+  const stats = statsState.data;
+  const error = applicationsState.error || statsState.error;
+  const pendingCount = stats?.pendingApplications ?? applications.filter(a => [2, 3, 4, 5, 7].includes(a.status)).length;
+  const approvedCount = stats?.approvedApplications ?? applications.filter(a => a.status === 8).length;
   return (
     <AppShell title="Employee dashboard" description="Track your welfare applications and open a new request.">
+      <div className="mb-4 flex items-center justify-between gap-3"><p className="text-sm text-gray-600">Application status updates automatically within 10 seconds.</p><Button variant="outlined" onClick={() => { void applicationsState.refresh(); void statsState.refresh(); }}>Refresh</Button></div>
       {error && (
         <div className="mb-4">
           <Alert tone="error">{error}</Alert>
@@ -39,7 +32,7 @@ export default function EmployeeDashboard() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card className="border-l-4 border-l-red-600">
           <p className="text-sm font-medium text-gray-600">Total Applications</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats.totalApplications ?? applications.length}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.totalApplications ?? applications.length}</p>
           <p className="mt-1 text-xs text-gray-500">All time</p>
         </Card>
         <Card className="border-l-4 border-l-amber-500">

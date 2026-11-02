@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 
 interface AnomalyCardProps {
   anomaly: Anomaly;
+  busy?: boolean;
   onResolve?: (id: number) => void;
   onInvestigate?: (id: number) => void;
   onDismiss?: (id: number) => void;
@@ -25,7 +26,7 @@ const statusColors = {
   Dismissed: 'bg-gray-200 text-gray-600',
 };
 
-export default function AnomalyCard({ anomaly, onResolve, onInvestigate, onDismiss }: AnomalyCardProps) {
+export default function AnomalyCard({ anomaly, busy = false, onResolve, onInvestigate, onDismiss }: AnomalyCardProps) {
   return (
     <Card className={`border-l-4 ${severityColors[anomaly.severity as keyof typeof severityColors]?.split(' ')[2] || 'border-gray-400'}`}>
       <div className="flex items-start justify-between gap-4">
@@ -52,19 +53,19 @@ export default function AnomalyCard({ anomaly, onResolve, onInvestigate, onDismi
         {anomaly.status === 'Open' && (
           <div className="flex flex-col gap-2">
             {onInvestigate && (
-              <Button variant="outlined" size="sm" onClick={() => onInvestigate(anomaly.id)}>
+              <Button variant="outlined" size="sm" disabled={busy} onClick={() => onInvestigate(anomaly.id)}>
                 Investigate
               </Button>
             )}
             {onDismiss && (
-              <Button variant="outlined" size="sm" onClick={() => onDismiss(anomaly.id)}>
+              <Button variant="outlined" size="sm" disabled={busy} onClick={() => onDismiss(anomaly.id)}>
                 Dismiss
               </Button>
             )}
           </div>
         )}
         {anomaly.status === 'Investigating' && onResolve && (
-          <Button variant="primary" size="sm" onClick={() => onResolve(anomaly.id)}>
+          <Button variant="primary" size="sm" disabled={busy} onClick={() => onResolve(anomaly.id)}>
             Resolve
           </Button>
         )}

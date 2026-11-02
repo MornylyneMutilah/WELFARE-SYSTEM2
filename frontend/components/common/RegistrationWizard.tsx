@@ -40,7 +40,7 @@ export default function RegistrationWizard({ onComplete, isSubmitting }: Registr
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
+  const [departments, setDepartments] = useState<Pick<DepartmentResponse, 'id' | 'name'>[]>([]);
   const [deptLoadError, setDeptLoadError] = useState('');
   const [values, setValues] = useState<RegistrationFormValues>({
     firstName: '',
@@ -57,7 +57,7 @@ export default function RegistrationWizard({ onComplete, isSubmitting }: Registr
   useEffect(() => {
     let cancelled = false;
     departmentsApi
-      .getAllDepartments()
+      .getRegistrationDepartments()
       .then((data) => {
         if (!cancelled) setDepartments(data);
       })

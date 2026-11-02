@@ -174,7 +174,15 @@ public class WelfareApplicationService : IWelfareApplicationService
             return null;
         }
 
+        await using var transaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync() : null;
+        var submittedAt = DateTime.UtcNow;
+        var changed = await _context.WelfareApplications.Where(a => a.Id == id && a.Status == 1)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.Status, 2)
+                .SetProperty(a => a.SubmittedAt, submittedAt).SetProperty(a => a.UpdatedAt, submittedAt));
+        if (changed == 0) return null;
         application.Status = 2; // Submitted
+        application.SubmittedAt = submittedAt;
         application.UpdatedAt = DateTime.UtcNow;
 
         await _welfareApplicationRepository.UpdateAsync(application);
@@ -191,6 +199,8 @@ public class WelfareApplicationService : IWelfareApplicationService
         
         _context.ApplicationStatusHistories.Add(statusHistory);
         await _context.SaveChangesAsync();
+
+        await _anomalyDetectionService.DetectAllAnomaliesForApplicationAsync(id);
         
         // Fetch with navigation properties for notification
         var applicationWithNav = await _context.WelfareApplications
@@ -208,6 +218,7 @@ public class WelfareApplicationService : IWelfareApplicationService
             );
         }
         
+        if (transaction != null) await transaction.CommitAsync();
         return MapToResponse(applicationWithNav!);
     }
 

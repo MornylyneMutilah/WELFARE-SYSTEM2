@@ -11,6 +11,9 @@ public class UserRepository : BaseRepository<User>, IUserRepository
     {
     }
 
+    public override async Task<IEnumerable<User>> GetAllAsync() => await _dbSet
+        .Include(u => u.Role).Include(u => u.Department).OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ToListAsync();
+
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await _dbSet

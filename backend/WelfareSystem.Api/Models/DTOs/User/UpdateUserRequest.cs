@@ -27,4 +27,9 @@ public class UpdateUserRequest
     public int RoleId { get; set; }
 
     public bool IsActive { get; set; } = true;
+    [Required]
+    public DateTime? HireDate { get; set; }
+    [Required, MinLength(3), MaxLength(1000)]
+    public string Reason { get; set; } = string.Empty;
+    public DateTime? ExpectedUpdatedAt { get; set; }
 }

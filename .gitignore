@@ -92,3 +92,6 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Developer-only backend settings (database credentials)
+appsettings.Local.json

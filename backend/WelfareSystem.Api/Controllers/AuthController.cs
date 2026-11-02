@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WelfareSystem.Api.Data;
 using WelfareSystem.Api.Models.DTOs.Auth;
 using WelfareSystem.Api.Services.Interfaces;
 
@@ -10,11 +12,18 @@ namespace WelfareSystem.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly AppDbContext _context;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, AppDbContext context)
     {
         _authService = authService;
+        _context = context;
     }
+
+    [HttpGet("registration-departments")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RegistrationDepartments() => Ok(await _context.Departments
+        .AsNoTracking().OrderBy(d => d.Name).Select(d => new { d.Id, d.Name }).ToListAsync());
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)

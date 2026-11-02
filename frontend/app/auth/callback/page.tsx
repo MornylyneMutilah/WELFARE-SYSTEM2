@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { dashboardPathForRole } from '@/lib/auth/roles';
@@ -12,20 +12,13 @@ function CallbackContent() {
   const { completeExternalLogin, user } = useAuth();
   const [message, setMessage] = useState('Completing sign-in…');
   const [error, setError] = useState('');
+  const startedCode = useRef<string | null>(null);
+  const code = params.get('code');
+  const callbackError = params.get('error') || (!code ? 'This sign-in callback is missing an authorization code.' : '');
 
   useEffect(() => {
-    const errorParam = params.get('error');
-    const code = params.get('code');
-    if (errorParam) {
-      setError(decodeURIComponent(errorParam));
-      setMessage('');
-      return;
-    }
-    if (!code) {
-      setError('This sign-in callback is missing an authorization code.');
-      setMessage('');
-      return;
-    }
+    if (callbackError || !code || startedCode.current === code) return;
+    startedCode.current = code;
     completeExternalLogin(code)
       .then(() => {
         setMessage('Signed in. Redirecting…');
@@ -35,7 +28,7 @@ function CallbackContent() {
         setError(axiosErr.response?.data?.message || 'Social sign-in failed.');
         setMessage('');
       });
-  }, [completeExternalLogin, params]);
+  }, [completeExternalLogin, code, callbackError]);
 
   useEffect(() => {
     if (user) {
@@ -45,7 +38,7 @@ function CallbackContent() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16">
-      {error ? <Alert tone="error">{error}</Alert> : <Alert tone="info">{message}</Alert>}
+      {callbackError || error ? <Alert tone="error">{callbackError || error}</Alert> : <Alert tone="info">{message}</Alert>}
     </div>
   );
 }

@@ -1,69 +1,44 @@
-using WelfareSystem.Api.Models.Entities;
-using WelfareSystem.Api.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using WelfareSystem.Api.Data;
 using WelfareSystem.Api.Services.Interfaces;
 
 namespace WelfareSystem.Api.Services;
 
-public class WorkflowService : IWorkflowService
+public class WorkflowService(AppDbContext context, IReviewService reviews) : IWorkflowService
 {
-    private readonly IWelfareApplicationRepository _applicationRepository;
-    private readonly IStatusHistoryService _statusHistoryService;
-
-    public WorkflowService(
-        IWelfareApplicationRepository applicationRepository,
-        IStatusHistoryService statusHistoryService)
-    {
-        _applicationRepository = applicationRepository;
-        _statusHistoryService = statusHistoryService;
-    }
-
-    public Task<bool> CanTransitionStatusAsync(int currentStatus, int newStatus, string userRole)
-    {
-        // Define valid status transitions based on user role
-        var validTransitions = GetValidTransitions(userRole);
-        
-        return Task.FromResult(validTransitions.Contains(newStatus));
-    }
+    public Task<bool> CanTransitionStatusAsync(int currentStatus, int newStatus, string userRole) => Task.FromResult(
+        (userRole, currentStatus, newStatus) switch {
+            ("HROfficer", 2, 3) => true,
+            ("HROfficer", 2 or 3, 4 or 9) => true,
+            ("CommitteeMember", 4, 5 or 6) => true,
+            ("Management", 5, 7) => true,
+            ("Management", 5 or 7, 8 or 9) => true,
+            _ => false
+        });
 
     public async Task<bool> UpdateApplicationStatusAsync(int applicationId, int newStatus, string comments, int userId, string userRole)
     {
-        var application = await _applicationRepository.GetByIdAsync(applicationId);
-        if (application == null)
+        var actor = await context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId && u.IsActive);
+        var application = await context.WelfareApplications.Include(a => a.User).FirstOrDefaultAsync(a => a.Id == applicationId);
+        if (actor == null || application == null || application.UserId == userId || string.IsNullOrWhiteSpace(comments)) return false;
+        userRole = actor.Role.Name;
+        if (userRole == "HROfficer" && application.User.DepartmentId != actor.DepartmentId) return false;
+        if (!await CanTransitionStatusAsync(application.Status, newStatus, userRole)) return false;
+        if (newStatus is 4 or 5 or 6 or 8 or 9)
         {
-            return false;
+            var recommendation = newStatus is 6 or 9 ? "Reject" : "Approve";
+            return await reviews.CreateReviewAsync(applicationId, userId, userRole, new() { Recommendation = recommendation, Comments = comments }) != null;
         }
-
-        // Check if transition is valid
-        if (!await CanTransitionStatusAsync(application.Status, newStatus, userRole))
-        {
-            return false;
-        }
-
-        // Update application status
-        application.Status = newStatus;
-        application.UpdatedAt = DateTime.UtcNow;
-        await _applicationRepository.UpdateAsync(application);
-
-        // Add status history
-        await _statusHistoryService.AddStatusHistoryAsync(applicationId, newStatus, userId, comments);
-
+        // Starting review changes only an intermediate state, with a conditional update to reject races.
+        await using var tx = context.Database.CurrentTransaction == null ? await context.Database.BeginTransactionAsync() : null;
+        var before = application.Status;
+        var changed = await context.WelfareApplications.Where(a => a.Id == applicationId && a.Status == before)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, newStatus).SetProperty(a => a.UpdatedAt, DateTime.UtcNow));
+        if (changed == 0) return false;
+        context.ApplicationStatusHistories.Add(new() { ApplicationId = applicationId, Status = newStatus, ChangedBy = userId, Notes = comments });
+        await context.SaveChangesAsync();
+        await context.Entry(application).ReloadAsync();
+        if (tx != null) await tx.CommitAsync();
         return true;
-    }
-
-    private List<int> GetValidTransitions(string userRole)
-    {
-        // Status values:
-        // 1: Draft, 2: Submitted, 3: Under HR Review, 4: Under Committee Review
-        // 5: Approved by Committee, 6: Rejected by Committee, 7: Pending Management Approval
-        // 8: Approved, 9: Rejected, 10: Cancelled
-
-        return userRole.ToLower() switch
-        {
-            "hrofficer" => new List<int> { 3, 9 }, // Can move to HR Review or Reject
-            "committeemember" => new List<int> { 4, 5, 6 }, // Can move to Committee Review, Approve, or Reject
-            "management" => new List<int> { 7, 8, 9 }, // Can move to Pending Management, Approve, or Reject
-            "administrator" => new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, // Admin can set any status
-            _ => new List<int>()
-        };
     }
 }

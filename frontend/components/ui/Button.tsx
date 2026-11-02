@@ -18,11 +18,13 @@ const variants: Record<Variant, string> = {
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   loading?: boolean;
+  size?: 'sm' | 'md';
 }
 
 export default function Button({
   variant = 'primary',
   loading = false,
+  size = 'md',
   className = '',
   children,
   disabled,
@@ -33,7 +35,7 @@ export default function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg ${size === 'sm' ? 'px-3 py-2' : 'px-5 py-3'} text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 ${variants[variant]} ${className}`}
       {...props}
     >
       {loading && (

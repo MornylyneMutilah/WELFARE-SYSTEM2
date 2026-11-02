@@ -29,14 +29,21 @@ apiClient.interceptors.request.use(
 
 // Response interceptor - handle errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (typeof window !== 'undefined' && ['post', 'put', 'patch', 'delete'].includes(response.config.method || '')) {
+      window.dispatchEvent(new Event('welfare:data-changed'));
+      try { localStorage.setItem('welfare:last-change', String(Date.now())); } catch { /* Polling still refreshes other views. */ }
+    }
+    return response;
+  },
   (error) => {
     const url = String(error.config?.url || '');
-    const isCredentialAuth = url.includes('/auth/login') || url.includes('/auth/register');
-    if (error.response?.status === 401 && !isCredentialAuth) {
+    const isCredentialAuth = url.startsWith('/auth/');
+    if (error.response?.status === 401 && !isCredentialAuth && localStorage.getItem('token')) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      window.location.assign(new URL('/login', window.location.origin).href);
     }
     return Promise.reject(error);
   }

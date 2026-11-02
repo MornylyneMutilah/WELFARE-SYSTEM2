@@ -23,7 +23,7 @@ export default function SocialAuthButtons({ isLoading = false }: SocialAuthButto
 
   const start = (provider: string, configured: boolean) => {
     if (!configured) return;
-    window.location.href = authApi.externalStartUrl(provider);
+    window.location.assign(authApi.externalStartUrl(provider));
   };
 
   const items = providers.length

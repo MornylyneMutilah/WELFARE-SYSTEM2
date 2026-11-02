@@ -29,4 +29,8 @@ public class CreateUserRequest
 
     [Required(ErrorMessage = "Role is required")]
     public int RoleId { get; set; }
+    [Required]
+    public DateTime? HireDate { get; set; }
+    [Required, MinLength(3), MaxLength(1000)]
+    public string Reason { get; set; } = string.Empty;
 }
