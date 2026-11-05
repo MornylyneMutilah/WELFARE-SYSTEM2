@@ -9,6 +9,7 @@ import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
 import { dashboardPathForRole } from '@/lib/auth/roles';
+import SupportScene from '@/components/common/SupportScene';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,9 +22,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push(dashboardPathForRole(user?.role));
+      router.push(user?.mustChangePassword ? '/account/security' : dashboardPathForRole(user?.role));
     }
-  }, [isAuthenticated, router, user?.role]);
+  }, [isAuthenticated, router, user?.role, user?.mustChangePassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +44,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:grid-cols-2">
-        <div className="hidden professional-gradient p-10 text-white lg:flex lg:flex-col lg:justify-end">
+        <div className="auth-brand-panel professional-gradient p-8 text-white sm:p-10">
+          <SupportScene variant="auth" />
           <h1 className="text-3xl font-bold">Care for each other, made simple.</h1>
           <p className="mt-3 text-white/90">Sign in to manage welfare applications for your organization.</p>
         </div>
@@ -91,6 +93,7 @@ export default function LoginPage() {
               {isLoading ? 'Signing in…' : 'Continue with email'}
             </Button>
           </form>
+          <Link href="/account/forgot" className="mt-4 inline-block font-semibold text-red-700 underline">Forgot your password?</Link>
 
           <div className="mt-8">
             <p className="mb-3 text-center text-sm text-gray-500">Or continue with a configured provider</p>

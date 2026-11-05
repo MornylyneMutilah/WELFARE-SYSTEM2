@@ -72,6 +72,7 @@ public class WelfareApplicationService : IWelfareApplicationService
 
     public async Task<ApplicationResponse?> CreateApplicationAsync(int userId, CreateApplicationRequest request)
     {
+        await using var transaction = _context.Database.CurrentTransaction == null ? await _context.Database.BeginTransactionAsync() : null;
         // Validate that the welfare program exists and is active
         var program = await _welfareProgramRepository.GetByIdAsync(request.WelfareProgramId);
         if (program == null || !program.IsActive)
@@ -121,6 +122,9 @@ public class WelfareApplicationService : IWelfareApplicationService
         };
 
         var createdApplication = await _welfareApplicationRepository.AddAsync(application);
+        await Reassess(createdApplication, "DraftCreated");
+        _context.ApplicationStatusHistories.Add(new ApplicationStatusHistory { ApplicationId = createdApplication.Id, Status = 1, ChangedBy = userId, Notes = "Draft created" });
+        await _context.SaveChangesAsync();
         
         // Fetch with navigation properties
         var applicationWithNav = await _context.WelfareApplications
@@ -128,17 +132,21 @@ public class WelfareApplicationService : IWelfareApplicationService
             .Include(a => a.WelfareProgram)
             .FirstOrDefaultAsync(a => a.Id == createdApplication!.Id);
         
+        if (transaction != null) await transaction.CommitAsync();
         return MapToResponse(applicationWithNav!);
     }
 
     public async Task<ApplicationResponse?> UpdateApplicationAsync(int id, UpdateApplicationRequest request)
     {
+        await using var transaction = _context.Database.CurrentTransaction == null ? await _context.Database.BeginTransactionAsync() : null;
+        await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"WelfareApplications\" WHERE \"Id\" = {id} FOR UPDATE");
         var application = await _welfareApplicationRepository.GetByIdAsync(id);
         if (application == null)
         {
             return null;
         }
 
+        await _context.Entry(application).ReloadAsync();
         // Only allow updating draft applications
         if (application.Status != 1) // Draft
         {
@@ -149,6 +157,8 @@ public class WelfareApplicationService : IWelfareApplicationService
         application.Reason = request.Reason;
         application.UpdatedAt = DateTime.UtcNow;
 
+        await Reassess(application, "DraftUpdated");
+
         await _welfareApplicationRepository.UpdateAsync(application);
         
         // Fetch with navigation properties
@@ -157,16 +167,25 @@ public class WelfareApplicationService : IWelfareApplicationService
             .Include(a => a.WelfareProgram)
             .FirstOrDefaultAsync(a => a.Id == id);
         
+        if (transaction != null) await transaction.CommitAsync();
         return MapToResponse(applicationWithNav!);
     }
 
     public async Task<ApplicationResponse?> SubmitApplicationAsync(int id)
     {
+        await using var transaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync() : null;
+        await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"WelfareApplications\" WHERE \"Id\" = {id} FOR UPDATE");
         var application = await _welfareApplicationRepository.GetByIdAsync(id);
         if (application == null)
         {
             return null;
         }
+
+        await _context.Entry(application).ReloadAsync();
+        var activeProgram = await _context.WelfarePrograms.AsNoTracking().FirstOrDefaultAsync(p => p.Id == application.WelfareProgramId);
+        if (activeProgram == null || !activeProgram.IsActive) return null;
+        if (!await _context.Users.AnyAsync(u => u.Id == application.UserId && u.IsActive)) return null;
 
         // Only allow submitting draft applications
         if (application.Status != 1) // Draft
@@ -174,8 +193,15 @@ public class WelfareApplicationService : IWelfareApplicationService
             return null;
         }
 
-        await using var transaction = _context.Database.CurrentTransaction == null
-            ? await _context.Database.BeginTransactionAsync() : null;
+        await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(81542001)");
+        await _context.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(81542002)");
+        await Reassess(application, "SubmissionCheck");
+        var blocking = await SubmissionGuard.Check(_context, application);
+        if (blocking.Count > 0) {
+            await _context.SaveChangesAsync();
+            if (transaction != null) await transaction.CommitAsync();
+            throw new SubmissionValidationException(blocking);
+        }
         var submittedAt = DateTime.UtcNow;
         var changed = await _context.WelfareApplications.Where(a => a.Id == id && a.Status == 1)
             .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.Status, 2)
@@ -238,6 +264,31 @@ public class WelfareApplicationService : IWelfareApplicationService
 
         _welfareApplicationRepository.Delete(application);
         return true;
+    }
+
+    private async Task Reassess(WelfareApplication application, string stage)
+    {
+        var user = await _context.Users.AsNoTracking().FirstAsync(u => u.Id == application.UserId);
+        var program = await _context.WelfarePrograms.AsNoTracking().FirstAsync(p => p.Id == application.WelfareProgramId);
+        var at = DateTime.UtcNow;
+        var result = _ruleEngineService.EvaluateEligibility(new RuleEvaluationContext {
+            User = user, Program = program, RequestedAmount = application.RequestedAmount, ApplicationDate = at,
+            UserApplications = await _context.WelfareApplications.AsNoTracking().Where(a => a.UserId == user.Id && a.Id != application.Id && a.Status != 10).ToListAsync()
+        });
+        var requirements = await SubmissionGuard.Check(_context, application);
+        result.RuleResults.Add(new RuleEvaluationResult { RuleName = "Mandatory submission requirements", IsPassed = requirements.Count == 0,
+            Message = requirements.Count == 0 ? "Active account/program, verified employment, service, amount and required evidence checks passed." : string.Join(" ", requirements), Details = new() { ["Mandatory"] = true } });
+        result.IsEligible = result.IsEligible && requirements.Count == 0;
+        result.WarningMessages.AddRange(requirements);
+        application.IsEligible = result.IsEligible;
+        application.AnomalyFlags = JsonSerializer.Serialize(result.WarningMessages);
+        application.RuleEvaluationResult = JsonSerializer.Serialize(new {
+            RuleEngine = result, AssessedAt = at, Stage = stage,
+            Inputs = new { user.HireDate, user.IsActive, user.EmploymentVerifiedAt, application.RequestedAmount, ProgramId = program.Id, program.Name,
+                program.MaxAmount, program.MinServicePeriod, program.RequiredDocuments, ProgramUpdatedAt = program.UpdatedAt }
+        });
+        _context.AuditLogs.Add(new AuditLog { UserId = application.UserId, Action = "EligibilityAssessed", EntityType = "WelfareApplication",
+            EntityId = application.Id.ToString(), Details = application.RuleEvaluationResult });
     }
 
     private ApplicationResponse MapToResponse(WelfareApplication application)

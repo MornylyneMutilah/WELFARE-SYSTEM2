@@ -14,6 +14,8 @@ public class WelfareApplicationRepository : BaseRepository<WelfareApplication>, 
     public async Task<IEnumerable<WelfareApplication>> GetByUserIdAsync(int userId)
     {
         return await _dbSet
+            .Include(a => a.WelfareProgram)
+            .Include(a => a.User)
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.SubmittedAt)
             .ToListAsync();
@@ -22,6 +24,8 @@ public class WelfareApplicationRepository : BaseRepository<WelfareApplication>, 
     public async Task<IEnumerable<WelfareApplication>> GetByWelfareProgramIdAsync(int welfareProgramId)
     {
         return await _dbSet
+            .Include(a => a.WelfareProgram)
+            .Include(a => a.User)
             .Where(a => a.WelfareProgramId == welfareProgramId)
             .OrderByDescending(a => a.SubmittedAt)
             .ToListAsync();
@@ -30,6 +34,8 @@ public class WelfareApplicationRepository : BaseRepository<WelfareApplication>, 
     public async Task<IEnumerable<WelfareApplication>> GetByStatusAsync(int status)
     {
         return await _dbSet
+            .Include(a => a.WelfareProgram)
+            .Include(a => a.User)
             .Where(a => a.Status == status)
             .OrderByDescending(a => a.SubmittedAt)
             .ToListAsync();

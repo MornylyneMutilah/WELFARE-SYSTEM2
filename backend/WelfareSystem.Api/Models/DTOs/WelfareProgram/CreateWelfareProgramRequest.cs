@@ -26,4 +26,5 @@ public class CreateWelfareProgramRequest
 
     [Required(ErrorMessage = "Required documents is required")]
     public string RequiredDocuments { get; set; } = string.Empty;
+    [MaxLength(1000)] public string Reason { get; set; } = string.Empty;
 }

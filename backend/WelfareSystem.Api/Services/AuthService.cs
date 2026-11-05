@@ -62,7 +62,7 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken,
             User = new UserDto
             {
-                Id = user.Id,
+                Id = user.Id, MustChangePassword = user.MustChangePassword,
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -108,7 +108,7 @@ public class AuthService : IAuthService
             DepartmentId = request.DepartmentId,
             RoleId = 1, // Employee role (auto-set)
             IsActive = true, // Auto-set
-            HireDate = request.HireDate ?? DateTime.UtcNow.AddYears(-1), // Default to 1 year ago if not provided
+            HireDate = request.HireDate ?? DateTime.UtcNow, // Unverified until an administrator checks employment records.
             CreatedAt = DateTime.UtcNow, // Auto-set
             UpdatedAt = DateTime.UtcNow // Auto-set
         };
@@ -144,7 +144,7 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken,
             User = new UserDto
             {
-                Id = userWithRelations.Id,
+                Id = userWithRelations.Id, MustChangePassword = userWithRelations.MustChangePassword,
                 Email = userWithRelations.Email,
                 FirstName = userWithRelations.FirstName,
                 LastName = userWithRelations.LastName,
@@ -198,7 +198,7 @@ public class AuthService : IAuthService
             RefreshToken = newRefreshToken,
             User = new UserDto
             {
-                Id = user.Id,
+                Id = user.Id, MustChangePassword = user.MustChangePassword,
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,

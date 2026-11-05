@@ -1,6 +1,9 @@
 import apiClient from './client';
 
 export interface UserResponse {
+  emailVerified: boolean;
+  mustChangePassword: boolean;
+  employmentVerifiedAt: string | null;
   id: number;
   email: string;
   firstName: string;
@@ -17,6 +20,7 @@ export interface UserResponse {
 }
 
 export interface CreateUserRequest {
+  confirmEmployment?: boolean;
   email: string;
   password: string;
   firstName: string;
@@ -29,6 +33,7 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
+  confirmEmployment?: boolean;
   email: string;
   firstName: string;
   lastName: string;

@@ -1,6 +1,9 @@
 import apiClient from './client';
 
 export interface DocumentResponse {
+  requirementName: string;
+  scanStatus: string;
+  contentAvailable: boolean;
   id: number;
   applicationId: number;
   fileName: string;
@@ -21,9 +24,10 @@ export const documentsApi = {
     return response.data;
   },
 
-  uploadDocument: async (applicationId: number, file: File): Promise<DocumentResponse> => {
+  uploadDocument: async (applicationId: number, file: File, requirement = ''): Promise<DocumentResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('requirement', requirement);
     
     const response = await apiClient.post<DocumentResponse>(`/documents/application/${applicationId}`, formData);
     return response.data;

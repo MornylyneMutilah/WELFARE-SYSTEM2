@@ -11,6 +11,11 @@ export default function Header() {
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
     pathname?.startsWith('/auth/') ||
+    pathname?.startsWith('/account') ||
+    pathname === '/budgets' ||
+    pathname === '/amendments' ||
+    pathname?.startsWith('/reviews/') ||
+    pathname === '/reports' ||
     pathname?.startsWith('/employee') ||
     pathname?.startsWith('/hr') ||
     pathname?.startsWith('/admin') ||

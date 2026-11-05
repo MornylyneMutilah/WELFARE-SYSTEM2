@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { applicationsApi, type ApplicationResponse } from '@/lib/api/applications';
 import { reviewsApi } from '@/lib/api/reviews';
-import { documentsApi } from '@/lib/api/documents';
+
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useLiveData } from '@/lib/hooks/useLiveData';
 import AppShell from '@/components/layout/AppShell';
@@ -12,15 +12,13 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { SelectField, TextAreaField } from '@/components/ui/Field';
 import AnomalyList from '@/components/anomaly/AnomalyList';
+import ApplicationEvidence from '@/components/common/ApplicationEvidence';
+import EligibilityAssessment from '@/components/common/EligibilityAssessment';
 
 const stages: Record<string, number[]> = { HROfficer: [2, 3], CommitteeMember: [4], Management: [5, 7] };
 const roleNames: Record<string, string> = { HROfficer: 'HR', CommitteeMember: 'Committee', Management: 'Management', Administrator: 'Administrator' };
 
 function ReviewDetails({ app, eligible, role, onSaved }: { app: ApplicationResponse; eligible: boolean; role: string; onSaved: () => void }) {
-  const loadHistory = useCallback(() => reviewsApi.getReviewsByApplicationId(app.id), [app.id]);
-  const loadDocuments = useCallback(() => documentsApi.getDocumentsByApplicationId(app.id), [app.id]);
-  const history = useLiveData(loadHistory);
-  const documents = useLiveData(loadDocuments);
   const [recommendation, setRecommendation] = useState('Approve');
   const [comments, setComments] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -51,20 +49,8 @@ function ReviewDetails({ app, eligible, role, onSaved }: { app: ApplicationRespo
       </dl>
       <h3 className="mt-4 font-semibold text-gray-900">Reason for application</h3>
       <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{app.reason}</p>
-      <h3 className="mt-4 font-semibold text-gray-900">Supporting documents</h3>
-      {documents.error ? <Alert tone="error">{documents.error}</Alert> : documents.loading ? <p role="status">Loading documents…</p> : (
-        documents.data?.length ? <ul className="list-inside list-disc text-sm text-gray-700">{documents.data.map(d => <li key={d.id}>{d.fileName} ({Math.ceil(d.fileSize / 1024)} KB)</li>)}</ul>
-        : <p className="text-sm text-gray-600">No supporting documents recorded.</p>
-      )}
-      <h3 className="mt-4 mb-2 font-semibold text-gray-900">Anomaly flags</h3>
+      <ApplicationEvidence applicationId={app.id} /><EligibilityAssessment value={app.ruleEvaluationResult} /><h3 className="mt-4 mb-2 font-semibold text-gray-900">Anomaly flags</h3>
       <AnomalyList applicationId={app.id} />
-      <h3 className="mt-4 font-semibold text-gray-900">Previous reviews</h3>
-      {history.error ? <Alert tone="error">{history.error}</Alert> : history.loading ? <p role="status">Loading reviews…</p> : (
-        history.data?.length ? <ul className="divide-y divide-gray-100 text-sm">{history.data.map(r => <li key={r.id} className="py-2">
-          <p className="font-semibold text-gray-900">{roleNames[r.reviewerRole] || r.reviewerRole} · {r.recommendation} · {r.reviewerName}</p>
-          <p className="whitespace-pre-wrap text-gray-700">{r.comments}</p>
-        </li>)}</ul> : <p className="text-sm text-gray-600">No reviews recorded yet.</p>
-      )}
       {eligible ? (
         <form onSubmit={submit} className="mt-6 space-y-4 border-t border-gray-200 pt-4" aria-label="Application decision">
           <h3 className="font-bold text-gray-900">Your decision</h3>

@@ -8,6 +8,7 @@ import RegistrationWizard, { type WizardData } from '@/components/common/Registr
 import SocialAuthButtons from '@/components/common/SocialAuthButtons';
 import Alert from '@/components/ui/Alert';
 import { dashboardPathForRole } from '@/lib/auth/roles';
+import SupportScene from '@/components/common/SupportScene';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -61,7 +62,8 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:grid-cols-2">
-        <div className="hidden professional-gradient p-10 text-white lg:block">
+        <div className="auth-brand-panel professional-gradient p-8 text-white sm:p-10">
+          <SupportScene variant="auth" />
           <h1 className="text-3xl font-bold">Join the welfare portal</h1>
           <p className="mt-4 text-white/90">
             Register with your work email. Privileged roles require administrator approval.

@@ -8,15 +8,23 @@ namespace WelfareSystem.Api.Services;
 public class ReportService : IReportService
 {
     private readonly AppDbContext _context;
+    private readonly IHttpContextAccessor _http;
 
-    public ReportService(AppDbContext context)
+    public ReportService(AppDbContext context, IHttpContextAccessor http)
     {
         _context = context;
+        _http = http;
+    }
+
+    private async Task<IQueryable<WelfareSystem.Api.Models.Entities.WelfareApplication>> Visible()
+    {
+        var id = int.TryParse(_http.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var actor) ? actor : 0;
+        return await ApplicationAccess.Visible(_context, id);
     }
 
     public async Task<ApplicationsByStatusReport> GetApplicationsByStatusReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.Include(a => a.WelfareProgram).AsQueryable();
+        var query = (await Visible()).Include(a => a.WelfareProgram).AsQueryable();
         
         if (startDate.HasValue)
         {
@@ -52,7 +60,7 @@ public class ReportService : IReportService
 
     public async Task<ApplicationsByDepartmentReport> GetApplicationsByDepartmentReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.Include(a => a.User).Include(a => a.WelfareProgram).AsQueryable();
+        var query = (await Visible()).Include(a => a.User).ThenInclude(u => u.Department).Include(a => a.WelfareProgram).AsQueryable();
         
         if (startDate.HasValue)
         {
@@ -89,7 +97,7 @@ public class ReportService : IReportService
 
     public async Task<ApplicationsByProgramReport> GetApplicationsByProgramReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.Include(a => a.WelfareProgram).AsQueryable();
+        var query = (await Visible()).Include(a => a.WelfareProgram).AsQueryable();
         
         if (startDate.HasValue)
         {
@@ -127,7 +135,7 @@ public class ReportService : IReportService
 
     public async Task<ExpenditureReport> GetExpenditureReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.Include(a => a.WelfareProgram).AsQueryable();
+        var query = (await Visible()).Include(a => a.WelfareProgram).AsQueryable();
         
         if (startDate.HasValue)
         {
@@ -182,7 +190,7 @@ public class ReportService : IReportService
 
     public async Task<ProcessingTimeReport> GetProcessingTimeReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.AsQueryable();
+        var query = await Visible();
         
         if (startDate.HasValue)
         {
@@ -194,23 +202,30 @@ public class ReportService : IReportService
             query = query.Where(a => a.SubmittedAt <= endDate.Value);
         }
 
-        var applications = await query.Where(a => a.Status == 8 || a.Status == 9).ToListAsync(); // Completed
+        var applications = await query.Where(a => a.Status == 8 || a.Status == 9 || a.Status == 6).ToListAsync();
 
         var processingTimes = applications
             .Select(a => (a.UpdatedAt - a.SubmittedAt).TotalDays)
             .ToList();
 
         var averageProcessingDays = processingTimes.Any() ? processingTimes.Average() : 0;
-        var medianProcessingDays = processingTimes.Any() ? processingTimes.OrderBy(t => t).Skip(processingTimes.Count / 2).First() : 0;
+        var ordered = processingTimes.OrderBy(t => t).ToArray();
+        var medianProcessingDays = ordered.Length == 0 ? 0 : (ordered[(ordered.Length - 1) / 2] + ordered[ordered.Length / 2]) / 2;
         var minProcessingDays = processingTimes.Any() ? processingTimes.Min() : 0;
         var maxProcessingDays = processingTimes.Any() ? processingTimes.Max() : 0;
 
-        var processingTimesByStage = new List<ProcessingTimeByStage>
-        {
-            new ProcessingTimeByStage { Stage = "HR Review", AverageDays = 3, ApplicationCount = applications.Count },
-            new ProcessingTimeByStage { Stage = "Committee Review", AverageDays = 5, ApplicationCount = applications.Count },
-            new ProcessingTimeByStage { Stage = "Management Approval", AverageDays = 2, ApplicationCount = applications.Count }
-        };
+        var ids = applications.Select(a => a.Id).ToArray();
+        var decisions = await _context.ApplicationReviews.AsNoTracking().Where(r => ids.Contains(r.ApplicationId)).ToListAsync();
+        var processingTimesByStage = new List<ProcessingTimeByStage>();
+        foreach (var stage in new[] { (Role: "HROfficer", Name: "HR Review", Previous: ""), (Role: "CommitteeMember", Name: "Committee Review", Previous: "HROfficer"), (Role: "Management", Name: "Management Approval", Previous: "CommitteeMember") }) {
+            var days = new List<double>();
+            foreach (var review in decisions.Where(r => r.ReviewerRole == stage.Role)) {
+                DateTime? start = stage.Previous == "" ? applications.First(a => a.Id == review.ApplicationId).SubmittedAt
+                    : decisions.Where(r => r.ApplicationId == review.ApplicationId && r.ReviewerRole == stage.Previous && r.Recommendation == "Approve").Select(r => (DateTime?)r.ReviewedAt).FirstOrDefault();
+                if (start.HasValue && review.ReviewedAt >= start) days.Add((review.ReviewedAt - start.Value).TotalDays);
+            }
+            processingTimesByStage.Add(new ProcessingTimeByStage { Stage = stage.Name, AverageDays = days.Count == 0 ? 0 : (decimal)days.Average(), ApplicationCount = days.Count });
+        }
 
         return new ProcessingTimeReport
         {
@@ -226,7 +241,7 @@ public class ReportService : IReportService
 
     public async Task<FlaggedApplicationsReport> GetFlaggedApplicationsReportAsync(DateTime? startDate, DateTime? endDate)
     {
-        var query = _context.WelfareApplications.Include(a => a.User).Include(a => a.WelfareProgram).AsQueryable();
+        var query = (await Visible()).Include(a => a.User).ThenInclude(u => u.Department).Include(a => a.WelfareProgram).AsQueryable();
         
         if (startDate.HasValue)
         {

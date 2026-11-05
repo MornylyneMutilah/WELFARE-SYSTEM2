@@ -2,6 +2,9 @@ namespace WelfareSystem.Api.Models.DTOs.Document;
 
 public class DocumentResponse
 {
+    public bool ContentAvailable { get; set; }
+    public string RequirementName { get; set; } = "";
+    public string ScanStatus { get; set; } = "Legacy/Unknown";
     public int Id { get; set; }
     public int ApplicationId { get; set; }
     public string FileName { get; set; } = string.Empty;

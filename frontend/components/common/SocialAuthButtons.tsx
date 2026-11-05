@@ -51,10 +51,10 @@ export default function SocialAuthButtons({ isLoading = false }: SocialAuthButto
       ))}
       {items.some((p) => !p.configured) && (
         <p className="text-xs text-gray-600">
-          Disabled providers are not configured on the server. They will not sign you in until client IDs,
-          secrets, and callback URLs are set. Email registration and login remain available.
+          Unavailable providers still need administrator setup. Email registration and login remain available.
         </p>
       )}
+      <p className="text-xs text-gray-600">For first-time use, register or sign in with email, then connect your provider from Profile.</p>
     </div>
   );
 }

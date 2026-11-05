@@ -37,7 +37,7 @@ public class UserAdministrationService(AppDbContext context, IPasswordHasher has
     }
 
     private static object Snapshot(User user) => new { user.Email, user.FirstName, user.LastName, user.EmployeeId,
-        user.RoleId, user.DepartmentId, user.HireDate, user.IsActive };
+        user.RoleId, user.DepartmentId, user.HireDate, user.IsActive, user.EmailVerified, user.MustChangePassword, user.EmploymentVerifiedAt };
     private static DateTime Now() { var now = DateTime.UtcNow; return now.AddTicks(-(now.Ticks % 10)); }
     private void Audit(User user, int actorId, string action, string reason, object? before) => context.AuditLogs.Add(new AuditLog {
         UserId = actorId, Action = action, EntityType = "User", EntityId = user.Id.ToString(),
@@ -71,6 +71,9 @@ public class UserAdministrationService(AppDbContext context, IPasswordHasher has
         var wasActive = user.IsActive;
         if (user.IsActive != request.IsActive || user.RoleId != request.RoleId || user.DepartmentId != request.DepartmentId)
             user.TokenVersion++;
+        if (!string.Equals(user.Email, request.Email.Trim(), StringComparison.OrdinalIgnoreCase)) { user.EmailVerified = false; user.TokenVersion++; }
+        if (user.HireDate.Date != request.HireDate!.Value.Date) user.EmploymentVerifiedAt = null;
+        if (request.ConfirmEmployment) user.EmploymentVerifiedAt = DateTime.UtcNow;
         user.Email = request.Email.Trim(); user.FirstName = request.FirstName.Trim(); user.LastName = request.LastName.Trim();
         user.EmployeeId = request.EmployeeId.Trim(); user.RoleId = request.RoleId; user.DepartmentId = request.DepartmentId;
         user.HireDate = DateTime.SpecifyKind(request.HireDate!.Value.Date, DateTimeKind.Utc);
@@ -103,7 +106,7 @@ public class UserAdministrationService(AppDbContext context, IPasswordHasher has
         var user = new User { Email = request.Email.Trim(), FirstName = request.FirstName.Trim(), LastName = request.LastName.Trim(),
             EmployeeId = request.EmployeeId.Trim(), DepartmentId = request.DepartmentId, RoleId = request.RoleId,
             HireDate = DateTime.SpecifyKind(request.HireDate!.Value.Date, DateTimeKind.Utc), PasswordHash = hasher.HashPassword(request.Password),
-            IsActive = true, CreatedAt = Now(), UpdatedAt = Now() };
+            IsActive = true, MustChangePassword = true, EmploymentVerifiedAt = request.ConfirmEmployment ? DateTime.UtcNow : null, CreatedAt = Now(), UpdatedAt = Now() };
         context.Users.Add(user); await context.SaveChangesAsync();
         Audit(user, actorId, "UserCreated", request.Reason, null);
         await context.SaveChangesAsync();
@@ -116,6 +119,6 @@ public class UserAdministrationService(AppDbContext context, IPasswordHasher has
         var u = await context.Users.Include(u => u.Role).Include(u => u.Department).FirstAsync(u => u.Id == id);
         return new() { Id = u.Id, Email = u.Email, FirstName = u.FirstName, LastName = u.LastName, EmployeeId = u.EmployeeId,
             DepartmentId = u.DepartmentId, DepartmentName = u.Department.Name, RoleId = u.RoleId, RoleName = u.Role.Name,
-            HireDate = u.HireDate, IsActive = u.IsActive, CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt };
+            HireDate = u.HireDate, IsActive = u.IsActive, EmailVerified = u.EmailVerified, MustChangePassword = u.MustChangePassword, EmploymentVerifiedAt = u.EmploymentVerifiedAt, CreatedAt = u.CreatedAt, UpdatedAt = u.UpdatedAt };
     }
 }

@@ -1,24 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useLiveData } from '@/lib/hooks/useLiveData';
 import Link from 'next/link';
-import { welfareProgramsApi, type WelfareProgramResponse } from '@/lib/api/welfarePrograms';
+import { welfareProgramsApi } from '@/lib/api/welfarePrograms';
 import AppShell from '@/components/layout/AppShell';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 
 export default function ProgramsPage() {
-  const [programs, setPrograms] = useState<WelfareProgramResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    welfareProgramsApi
-      .getActivePrograms()
-      .then(setPrograms)
-      .catch(() => setError('Failed to load welfare programs'))
-      .finally(() => setIsLoading(false));
-  }, []);
+  const { data, loading: isLoading, error } = useLiveData(welfareProgramsApi.getActivePrograms);
+  const programs = data ?? [];
 
   return (
     <AppShell title="Welfare programs" description="Browse active programs and start an application.">

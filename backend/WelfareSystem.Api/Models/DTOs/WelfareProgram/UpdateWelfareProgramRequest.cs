@@ -28,4 +28,6 @@ public class UpdateWelfareProgramRequest
     public string RequiredDocuments { get; set; } = string.Empty;
 
     public bool IsActive { get; set; } = true;
+    [MaxLength(1000)] public string Reason { get; set; } = string.Empty;
+    public DateTime? ExpectedUpdatedAt { get; set; }
 }

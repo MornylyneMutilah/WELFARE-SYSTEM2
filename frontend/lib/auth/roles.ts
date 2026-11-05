@@ -55,31 +55,52 @@ export function navigationForRole(role: string | undefined | null): NavItem[] {
     case 'HROfficer':
       return [
         { href: '/hr/dashboard', label: 'Dashboard' },
+        { href: '/reviews/history', label: 'Decision register' },
         { href: '/hr/reviews', label: 'Reviews' },
         { href: '/employee/programs', label: 'Programs' },
+        { href: '/reports', label: 'Reports' },
+        { href: '/amendments', label: 'Appeals & addenda' },
         { href: '/employee/profile', label: 'Profile' },
+        { href: '/account/security', label: 'Account security' },
       ];
     case 'CommitteeMember':
       return [
         { href: '/committee/dashboard', label: 'Dashboard' },
+        { href: '/reviews/history', label: 'Decision register' },
         { href: '/hr/reviews', label: 'Reviews' },
         { href: '/employee/programs', label: 'Programs' },
+        { href: '/reports', label: 'Reports' },
+        { href: '/amendments', label: 'Appeals & addenda' },
         { href: '/employee/profile', label: 'Profile' },
+        { href: '/account/security', label: 'Account security' },
       ];
     case 'Management':
       return [
         { href: '/management/dashboard', label: 'Dashboard' },
+        { href: '/budgets', label: 'Budgets' },
+        { href: '/reviews/history', label: 'Decision register' },
         { href: '/hr/reviews', label: 'Approvals' },
         { href: '/employee/programs', label: 'Programs' },
+        { href: '/reports', label: 'Reports' },
+        { href: '/amendments', label: 'Appeals & addenda' },
         { href: '/employee/profile', label: 'Profile' },
+        { href: '/account/security', label: 'Account security' },
       ];
     case 'Administrator':
       return [
         { href: '/admin/dashboard', label: 'Dashboard' },
+        { href: '/reviews/history', label: 'Decision register' },
+        { href: '/admin/audit', label: 'Audit log' },
+        { href: '/admin/detection', label: 'Detection controls' },
+        { href: '/admin/operations', label: 'Readiness' },
+        { href: '/budgets', label: 'Budgets' },
         { href: '/admin/users', label: 'Users' },
         { href: '/admin/role-requests', label: 'Role requests' },
-        { href: '/employee/programs', label: 'Programs' },
+        { href: '/admin/programs', label: 'Programs' },
+        { href: '/reports', label: 'Reports' },
+        { href: '/amendments', label: 'Appeals & addenda' },
         { href: '/employee/profile', label: 'Profile' },
+        { href: '/account/security', label: 'Account security' },
       ];
     default:
       return [
@@ -87,7 +108,10 @@ export function navigationForRole(role: string | undefined | null): NavItem[] {
         { href: '/employee/programs', label: 'Programs' },
         { href: '/employee/applications', label: 'Applications' },
         { href: '/employee/applications/new', label: 'New application' },
+        { href: '/reports', label: 'Reports' },
+        { href: '/amendments', label: 'Appeals & addenda' },
         { href: '/employee/profile', label: 'Profile' },
+        { href: '/account/security', label: 'Account security' },
       ];
   }
 }

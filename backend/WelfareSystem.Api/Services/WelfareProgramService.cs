@@ -39,11 +39,14 @@ public class WelfareProgramService : IWelfareProgramService
 
     public async Task<WelfareProgramResponse?> CreateProgramAsync(CreateWelfareProgramRequest request)
     {
+        if (!DocumentListValidator.IsValid(request.RequiredDocuments) || string.IsNullOrWhiteSpace(request.Name) ||
+            string.IsNullOrWhiteSpace(request.Description) || string.IsNullOrWhiteSpace(request.Category) ||
+            request.MaxAmount is < 0.01m or > 1000000m || request.MinServicePeriod is < 0 or > 120) return null;
         var program = new WelfareProgram
         {
-            Name = request.Name,
-            Description = request.Description,
-            Category = request.Category,
+            Name = request.Name.Trim(),
+            Description = request.Description.Trim(),
+            Category = request.Category.Trim(),
             MaxAmount = request.MaxAmount,
             MinServicePeriod = request.MinServicePeriod,
             RequiredDocuments = request.RequiredDocuments,
@@ -58,15 +61,18 @@ public class WelfareProgramService : IWelfareProgramService
 
     public async Task<WelfareProgramResponse?> UpdateProgramAsync(int id, UpdateWelfareProgramRequest request)
     {
+        if (!DocumentListValidator.IsValid(request.RequiredDocuments) || string.IsNullOrWhiteSpace(request.Name) ||
+            string.IsNullOrWhiteSpace(request.Description) || string.IsNullOrWhiteSpace(request.Category) ||
+            request.MaxAmount is < 0.01m or > 1000000m || request.MinServicePeriod is < 0 or > 120) return null;
         var program = await _welfareProgramRepository.GetByIdAsync(id);
         if (program == null)
         {
             return null;
         }
 
-        program.Name = request.Name;
-        program.Description = request.Description;
-        program.Category = request.Category;
+        program.Name = request.Name.Trim();
+        program.Description = request.Description.Trim();
+        program.Category = request.Category.Trim();
         program.MaxAmount = request.MaxAmount;
         program.MinServicePeriod = request.MinServicePeriod;
         program.RequiredDocuments = request.RequiredDocuments;

@@ -22,7 +22,7 @@ public class FrequencyRule : IRule
         // Check for pending applications for the same program
         var pendingApplications = context.UserApplications
             .Where(a => a.WelfareProgramId == context.Program.Id && 
-                       (a.Status == 1 || a.Status == 2 || a.Status == 3 || a.Status == 4)) // Draft, Submitted, HR Review, Committee Review
+                       (a.Status == 1 || a.Status == 2 || a.Status == 3 || a.Status == 4 || a.Status == 5 || a.Status == 7))
             .ToList();
 
         if (pendingApplications.Any())
@@ -34,7 +34,7 @@ public class FrequencyRule : IRule
         }
 
         // Check if user has applied for this program in the last 6 months
-        var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+        var sixMonthsAgo = context.ApplicationDate.AddMonths(-6);
         var recentApplications = context.UserApplications
             .Where(a => a.WelfareProgramId == context.Program.Id && 
                        a.SubmittedAt >= sixMonthsAgo &&

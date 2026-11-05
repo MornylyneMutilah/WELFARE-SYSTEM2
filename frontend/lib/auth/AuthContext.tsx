@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authApi, type UserDto } from '../api/auth';
 import { tokenUtils } from './tokenUtils';
 import { usersApi } from '../api/users';
@@ -24,6 +24,7 @@ interface AuthContextType {
   completeExternalLogin: (code: string) => Promise<void>;
   logout: () => void;
   refreshUserData: () => Promise<void>;
+  consumeLoginWelcome: (userId: number) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Presentation-only signal: set on successful sign-in, never during session hydration or refresh.
+  const pendingWelcome = useRef<number | null>(null);
+  const consumeLoginWelcome = useCallback((userId: number) => {
+    if (pendingWelcome.current !== userId) return false;
+    pendingWelcome.current = null;
+    return true;
+  }, []);
 
   useEffect(() => {
     // Hydrate browser storage after mount, preserving the server's initial render.
@@ -47,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const verifiedUser: UserDto = {
             id: verified.id, email: verified.email, firstName: verified.firstName, lastName: verified.lastName,
             employeeId: verified.employeeId, role: verified.roleName, department: verified.departmentName,
+            mustChangePassword: verified.mustChangePassword,
           };
           setToken(storedToken);
           setUser(verifiedUser);
@@ -65,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await authApi.login({ email, password });
+      pendingWelcome.current = response.user.id;
       
       tokenUtils.setToken(response.token);
       tokenUtils.setRefreshToken(response.refreshToken);
@@ -80,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeExternalLogin = useCallback(async (code: string) => {
     const response = await authApi.exchangeExternal(code);
+    pendingWelcome.current = response.user.id;
     tokenUtils.setToken(response.token);
     tokenUtils.setRefreshToken(response.refreshToken);
     localStorage.setItem('user', JSON.stringify(response.user));
@@ -108,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    pendingWelcome.current = null;
     tokenUtils.clearAll();
     localStorage.removeItem('user');
     setToken(null);
@@ -146,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     completeExternalLogin,
     logout,
     refreshUserData,
+    consumeLoginWelcome,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

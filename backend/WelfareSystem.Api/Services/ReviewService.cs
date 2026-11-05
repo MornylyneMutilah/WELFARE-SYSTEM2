@@ -58,11 +58,21 @@ public class ReviewService(AppDbContext context, NotificationTriggerService noti
         application.UpdatedAt = DateTime.UtcNow;
         context.ApplicationStatusHistories.Add(new ApplicationStatusHistory {
             ApplicationId = applicationId, Status = newStatus, ChangedBy = reviewerId,
-            Notes = $"{reviewerRole}: {review.Recommendation}. {review.Comments}"
+            Notes = ($"{reviewerRole}: {review.Recommendation}. {review.Comments}").Length > 1000
+                ? ($"{reviewerRole}: {review.Recommendation}. {review.Comments}")[..997] + "..."
+                : $"{reviewerRole}: {review.Recommendation}. {review.Comments}"
         });
+        await context.SaveChangesAsync();
+        var documents = await context.ApplicationDocuments.AsNoTracking().Where(d => d.ApplicationId == applicationId)
+            .Select(d => new { d.Id, d.FileName, d.FileType, d.FileSize, d.UploadedAt, d.ContentHash, d.RequirementName, d.ScanStatus }).ToListAsync();
         context.AuditLogs.Add(new AuditLog { UserId = reviewerId, Action = "ApplicationReview",
             EntityType = "WelfareApplication", EntityId = applicationId.ToString(),
-            Details = System.Text.Json.JsonSerializer.Serialize(new { reviewerRole, review.Recommendation, newStatus }) });
+            Details = System.Text.Json.JsonSerializer.Serialize(new { reviewId = review.Id, reviewerRole, review.Recommendation, newStatus,
+                snapshot = new { reference = $"WEL-DEC-{review.Id:D6}", applicationId, employeeName = $"{application.User.FirstName} {application.User.LastName}",
+                    application.User.EmployeeId, application.User.DepartmentId, programName = application.WelfareProgram.Name, application.RequestedAmount,
+                    application.Reason, application.IsEligible, application.RuleEvaluationResult, application.SubmittedAt,
+                    reviewerName = $"{actor.FirstName} {actor.LastName}", reviewerRole, review.Recommendation, review.Comments, review.ReviewedAt, newStatus, documents }
+            }, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)) });
         await context.SaveChangesAsync();
         if (newStatus == 8) await notifications.TriggerApprovalAsync(application.UserId, applicationId, application.WelfareProgram.Name);
         else if (newStatus is 6 or 9) await notifications.TriggerRejectionAsync(application.UserId, applicationId, application.WelfareProgram.Name, review.Comments);
@@ -78,8 +88,8 @@ public class ReviewService(AppDbContext context, NotificationTriggerService noti
         // A completed decision cannot be changed independently of its application/history.
         if (review == null || !string.Equals(review.Recommendation, request.Recommendation.Trim(), StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(request.Comments)) return null;
-        review.Comments = request.Comments.Trim();
-        await context.SaveChangesAsync();
+        // Finalized decisions and their notes are immutable. Corrections require a separate, attributed event.
+        if (review.Comments != request.Comments.Trim()) return null;
         return Map(review);
     }
 

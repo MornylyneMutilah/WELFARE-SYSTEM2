@@ -31,6 +31,7 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-600">Common administrative tasks</p>
           </div>
           <div className="space-y-3">
+            <Link href="/admin/programs" className="block"><Button variant="primary" className="w-full">Create or manage programs</Button></Link>
             <Link href="/admin/users" className="block">
               <Button variant="outlined" className="w-full">
                 Manage users

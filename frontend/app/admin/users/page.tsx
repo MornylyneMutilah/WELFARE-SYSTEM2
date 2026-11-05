@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { accountApi } from '@/lib/api/operations';
 import { usersApi, type UserResponse, type UserOptions, type UpdateUserRequest } from '@/lib/api/users';
 import { ROLE_LABELS, isAppRole } from '@/lib/auth/roles';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -21,12 +22,12 @@ function UserEditor({ user, options, self, onSaved, onCancel }: { user?: UserRes
   const [form, setForm] = useState({ firstName: user?.firstName || '', lastName: user?.lastName || '', email: user?.email || '',
     employeeId: user?.employeeId || '', departmentId: user?.departmentId || options.departments[0]?.id || 0,
     roleId: user?.roleId || options.roles.find(r => r.name === 'Employee')?.id || 0, hireDate: user?.hireDate.slice(0, 10) || '',
-    isActive: user?.isActive ?? true, reason: '', password: '' });
+    isActive: user?.isActive ?? true, reason: '', password: '', confirmEmployment: false });
   const [confirmed, setConfirmed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const update = (patch: Partial<typeof form>) => { setForm(value => ({ ...value, ...patch })); setConfirmed(false); };
+  const update = (patch: Partial<typeof form>) => { setForm(value => ({ ...value, ...patch, ...(patch.hireDate !== undefined ? { confirmEmployment: false } : {}) })); setConfirmed(false); };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy || !confirmed) return;
@@ -34,11 +35,11 @@ function UserEditor({ user, options, self, onSaved, onCancel }: { user?: UserRes
     try {
       const data: UpdateUserRequest = { firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim(),
         employeeId: form.employeeId.trim(), departmentId: form.departmentId, roleId: form.roleId,
-        hireDate: `${form.hireDate}T00:00:00Z`, isActive: form.isActive, reason: form.reason.trim(), expectedUpdatedAt: user?.updatedAt };
+        hireDate: `${form.hireDate}T00:00:00Z`, isActive: form.isActive, reason: form.reason.trim(), expectedUpdatedAt: user?.updatedAt, confirmEmployment: form.confirmEmployment };
       if (user) await usersApi.updateUser(user.id, data);
       else await usersApi.createUser({ email: data.email, firstName: data.firstName, lastName: data.lastName, employeeId: data.employeeId,
-        departmentId: data.departmentId, roleId: data.roleId, hireDate: data.hireDate, reason: data.reason, password: form.password });
-      onSaved(user ? 'User updated. Changes have been recorded in the audit history.' : 'User created as an active account. Keep the initial password confidential.');
+        departmentId: data.departmentId, roleId: data.roleId, hireDate: data.hireDate, reason: data.reason, password: form.password, confirmEmployment: form.confirmEmployment });
+      onSaved(user ? 'User updated. Changes have been recorded in the audit history.' : 'User created. The initial password must be replaced at first login. Use Send setup invitation to deliver a private setup link.');
     } catch (err) { setError(errorMessage(err)); }
     finally { setBusy(false); }
   };
@@ -65,6 +66,7 @@ function UserEditor({ user, options, self, onSaved, onCancel }: { user?: UserRes
     <TextAreaField id="admin-change-reason" label="Reason for this change" required minLength={3} maxLength={1000} disabled={busy} value={form.reason} onChange={e => update({ reason: e.target.value })} />
     <p className="text-sm text-gray-600">Role, department, or status changes invalidate the existing sessions for this user. Suspension preserves their applications and history. A hire-date correction is used for future eligibility assessments.</p>
     {self && <p className="text-sm text-amber-800">You cannot change your own role or suspend yourself. Ask another administrator. Changing your own department will require signing in again.</p>}
+    <label className="flex items-start gap-2 text-sm text-gray-800"><input type="checkbox" checked={form.confirmEmployment} onChange={e => update({ confirmEmployment: e.target.checked })} />I checked this hire date against authoritative employment records and confirm it is accurate.</label>
     <label className="flex items-start gap-2 text-sm text-gray-800"><input type="checkbox" required checked={confirmed} disabled={busy} onChange={e => setConfirmed(e.target.checked)} />I have verified these details and authorize this account change.</label>
     <div className="flex gap-3"><Button type="submit" loading={busy} disabled={!confirmed || form.reason.trim().length < 3}>Save user</Button><Button variant="ghost" disabled={busy} onClick={onCancel}>Cancel</Button></div>
   </form></Card>;
@@ -120,6 +122,8 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState('all');
   const [panel, setPanel] = useState<Panel>(null);
   const [success, setSuccess] = useState('');
+  const [invitationError, setInvitationError] = useState('');
+  const [invitationBusyId, setInvitationBusyId] = useState<number | null>(null);
   const users = usersState.data || [];
   const options = optionsState.data;
   const shown = users.filter(u => (status === 'all' || u.isActive === (status === 'active')) && (role === 'all' || u.roleName === role) &&
@@ -128,6 +132,7 @@ export default function AdminUsersPage() {
   return <AppShell title="User management" requiredRole="Administrator" description="Manage account access, employment details, departments, and roles without deleting employee records.">
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-gray-600">{users.length} users · {users.filter(u => u.isActive).length} active · {users.filter(u => !u.isActive).length} suspended</p><div className="flex gap-2"><Button variant="outlined" onClick={() => { void usersState.refresh(); void optionsState.refresh(); }}>Refresh</Button><Button disabled={!options} onClick={() => { setSuccess(''); setPanel({ mode: 'create' }); }}>Add user</Button></div></div>
     {(usersState.error || optionsState.error) && <div className="mb-4"><Alert tone="error">{usersState.error || optionsState.error}</Alert></div>}
+    {invitationError && <Alert tone="error">{invitationError}</Alert>}
     {success && <div className="mb-4"><Alert tone="success">{success}</Alert></div>}
     {panel && options && (panel.mode === 'edit' || panel.mode === 'create') && <UserEditor key={panel.mode === 'create' ? 'new' : `edit-${panel.user.id}`} user={panel.mode === 'edit' ? panel.user : undefined} self={panel.mode === 'edit' && panel.user.id === actor?.id} options={options} onSaved={saved} onCancel={() => setPanel(null)} />}
     {panel?.mode === 'status' && <StatusEditor key={`status-${panel.user.id}`} user={panel.user} onSaved={saved} onCancel={() => setPanel(null)} />}
@@ -139,7 +144,7 @@ export default function AdminUsersPage() {
     </div>
     {usersState.loading ? <p role="status">Loading users…</p> : shown.length === 0 ? <p className="py-6 text-gray-600">No users match these filters.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">User accounts and administration actions</caption>
       <thead><tr className="border-b border-gray-200 text-gray-600">{['User', 'Role / department', 'Hire date', 'Status', 'Actions'].map(label => <th scope="col" key={label} className="px-3 py-3 font-semibold">{label}</th>)}</tr></thead>
-      <tbody className="divide-y divide-gray-100">{shown.map(u => <tr key={u.id}><td className="px-3 py-3"><p className="font-semibold text-gray-900">{u.firstName} {u.lastName}{u.id === actor?.id ? ' (you)' : ''}</p><p className="text-gray-600">{u.email}</p><p className="text-xs text-gray-500">{u.employeeId}</p></td><td className="px-3 py-3 text-gray-700">{roleLabel(u.roleName)}<br />{u.departmentName}</td><td className="px-3 py-3 whitespace-nowrap text-gray-700">{u.hireDate?.slice(0, 10) || 'Not recorded'}</td><td className="px-3 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{u.isActive ? 'Active' : 'Suspended'}</span></td><td className="px-3 py-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outlined" disabled={!options} onClick={() => { setSuccess(''); setPanel({ mode: 'edit', user: u }); }}>Edit</Button><Button size="sm" variant={u.isActive ? 'destructive' : 'primary'} disabled={u.id === actor?.id} onClick={() => { setSuccess(''); setPanel({ mode: 'status', user: u }); }}>{u.isActive ? 'Suspend' : 'Reactivate'}</Button><Button size="sm" variant="ghost" onClick={() => setPanel({ mode: 'history', user: u })}>History</Button></div></td></tr>)}</tbody>
+      <tbody className="divide-y divide-gray-100">{shown.map(u => <tr key={u.id}><td className="px-3 py-3"><p className="font-semibold text-gray-900">{u.firstName} {u.lastName}{u.id === actor?.id ? ' (you)' : ''}</p><p className="text-gray-600">{u.email}</p><p className="text-xs text-gray-500">{u.employeeId}</p></td><td className="px-3 py-3 text-gray-700">{roleLabel(u.roleName)}<br />{u.departmentName}</td><td className="px-3 py-3 whitespace-nowrap text-gray-700">{u.hireDate?.slice(0, 10) || 'Not recorded'}<p className={u.employmentVerifiedAt ? 'text-xs text-green-700' : 'text-xs text-amber-800'}>{u.employmentVerifiedAt ? 'Verified' : 'Needs verification'}</p></td><td className="px-3 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{u.isActive ? 'Active' : 'Suspended'}</span></td><td className="px-3 py-3"><div className="flex flex-wrap gap-2"><Button size="sm" variant="outlined" disabled={!options} onClick={() => { setSuccess(''); setPanel({ mode: 'edit', user: u }); }}>Edit</Button><Button size="sm" variant={u.isActive ? 'destructive' : 'primary'} disabled={u.id === actor?.id} onClick={() => { setSuccess(''); setPanel({ mode: 'status', user: u }); }}>{u.isActive ? 'Suspend' : 'Reactivate'}</Button><Button size="sm" variant="ghost" onClick={() => setPanel({ mode: 'history', user: u })}>History</Button>{u.mustChangePassword && u.isActive && <Button size="sm" variant="outlined" disabled={invitationBusyId !== null} loading={invitationBusyId === u.id} onClick={async () => { if (invitationBusyId !== null) return; setInvitationBusyId(u.id); setInvitationError(''); try { const result = await accountApi.invite(u.id); setSuccess(`${result.message} Delivery: ${result.deliveryMode}.`); } catch (error) { setInvitationError(errorMessage(error)); } finally { setInvitationBusyId(null); } }}>Send setup invitation</Button>}</div></td></tr>)}</tbody>
     </table></div>}
     <p className="mt-4 text-xs text-gray-500">Existing records are retained. Changes need a reason and are audited. This page refreshes automatically; an open edit keeps its original values so it cannot silently overwrite changes made by another administrator.</p>
     </Card>

@@ -17,6 +17,7 @@ export interface RegisterRequest {
 }
 
 export interface UserDto {
+  mustChangePassword?: boolean;
   id: number;
   email: string;
   firstName: string;
@@ -40,6 +41,7 @@ export interface ExternalProviderStatus {
   provider: string;
   configured: boolean;
 }
+export interface ExternalLink { provider: string; createdAt: string; }
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
@@ -56,6 +58,9 @@ export const authApi = {
     const response = await apiClient.get<ExternalProviderStatus[]>('/auth/external/providers');
     return response.data;
   },
+  getExternalLinks: async (): Promise<ExternalLink[]> => (await apiClient.get<ExternalLink[]>('/auth/external/links')).data,
+  linkExternal: async (provider: string, password: string): Promise<{ authorizationUrl: string }> =>
+    (await apiClient.post<{ authorizationUrl: string }>(`/auth/external/${provider}/link`, { password }, { withCredentials: true })).data,
 
   externalStartUrl: (provider: string): string => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5249/api';
@@ -63,7 +68,7 @@ export const authApi = {
   },
 
   exchangeExternal: async (code: string): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/auth/external/exchange', { code });
+    const response = await apiClient.post<LoginResponse>('/auth/external/exchange', { code }, { withCredentials: true });
     return response.data;
   },
 

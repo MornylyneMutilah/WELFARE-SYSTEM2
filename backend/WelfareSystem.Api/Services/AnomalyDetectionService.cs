@@ -32,20 +32,21 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         if (user == null) return null;
 
         // Get applications from the last 30 days
-        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        var policy = await _context.DetectionSettings.AsNoTracking().FirstOrDefaultAsync() ?? new DetectionSettings();
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-policy.FrequencyDays);
         var recentApplications = await _context.WelfareApplications
             .Where(a => a.UserId == userId && a.Status != 1 && a.Status != 10 && a.SubmittedAt >= thirtyDaysAgo)
             .CountAsync();
 
         // Threshold: More than 3 applications in 30 days is suspicious
-        if (recentApplications > 3)
+        if (recentApplications > policy.FrequencyLimit)
         {
             var anomaly = new Anomaly
             {
                 AnomalyType = "ApplicationFrequency",
                 ApplicationId = applicationId,
-                Severity = recentApplications > 6 ? "High" : "Medium",
-                Description = $"User has submitted {recentApplications} applications in the last 30 days, which exceeds the normal threshold of 3.",
+                Severity = recentApplications > policy.FrequencyLimit * 2 ? "High" : "Medium",
+                Description = $"User has submitted {recentApplications} applications in {policy.FrequencyDays} days, above the configured threshold of {policy.FrequencyLimit}.",
                 UserId = userId,
                 Status = "Open",
                 DetectedAt = DateTime.UtcNow,
@@ -53,8 +54,8 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 DetectionDetails = JsonSerializer.Serialize(new
                 {
                     applicationCount = recentApplications,
-                    timeWindowDays = 30,
-                    threshold = 3
+                    timeWindowDays = policy.FrequencyDays,
+                    threshold = policy.FrequencyLimit
                 })
             };
 
@@ -80,12 +81,13 @@ public class AnomalyDetectionService : IAnomalyDetectionService
             : 0;
 
         // Threshold: More than 50% above average is suspicious
-        if (percentageAboveAverage > 50)
+        var policy = await _context.DetectionSettings.AsNoTracking().FirstOrDefaultAsync() ?? new DetectionSettings();
+        if (percentageAboveAverage > policy.AmountPercentage)
         {
             var anomaly = new Anomaly
             {
                 AnomalyType = "AmountAnomaly",
-                Severity = percentageAboveAverage > 100 ? "Critical" : "High",
+                Severity = percentageAboveAverage > policy.AmountPercentage * 2 ? "Critical" : "High",
                 Description = $"Requested amount is {percentageAboveAverage:F1}% above the program average of {programAverage:C}.",
                 ApplicationId = applicationId,
                 UserId = application.UserId,
@@ -97,7 +99,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                     requestedAmount = application.RequestedAmount,
                     programAverage = programAverage,
                     percentageAboveAverage = percentageAboveAverage,
-                    threshold = 50
+                    threshold = policy.AmountPercentage
                 })
             };
 
@@ -110,7 +112,8 @@ public class AnomalyDetectionService : IAnomalyDetectionService
     public async Task<Anomaly?> DetectDuplicateApplicationAsync(int userId, int welfareProgramId, int? applicationId = null)
     {
         // Check for existing applications for the same program in the last 7 days
-        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+        var policy = await _context.DetectionSettings.AsNoTracking().FirstOrDefaultAsync() ?? new DetectionSettings();
+        var sevenDaysAgo = DateTime.UtcNow.AddDays(-policy.DuplicateDays);
         var recentApplications = await _context.WelfareApplications
             .Where(a => a.UserId == userId && a.WelfareProgramId == welfareProgramId && a.Id != applicationId && a.Status != 1 && a.Status != 10 && a.SubmittedAt >= sevenDaysAgo)
             .OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id)
@@ -133,7 +136,7 @@ public class AnomalyDetectionService : IAnomalyDetectionService
                 {
                     existingApplicationId = existingApplication.Id,
                     existingSubmissionDate = existingApplication.SubmittedAt,
-                    timeWindowDays = 7
+                    timeWindowDays = policy.DuplicateDays
                 })
             };
 
@@ -211,7 +214,19 @@ public class AnomalyDetectionService : IAnomalyDetectionService
         // Check for cross-program anomaly
         var crossProgramAnomaly = await DetectCrossProgramAnomalyAsync(application.UserId, applicationId);
         if (crossProgramAnomaly != null) anomalies.Add(crossProgramAnomaly);
+        var hashes = await _context.ApplicationDocuments.Where(d => d.ApplicationId == applicationId && d.ContentHash != "").Select(d => d.ContentHash).ToListAsync();
+        if (hashes.Count > 0 && await _context.ApplicationDocuments.AnyAsync(d => d.ApplicationId != applicationId && hashes.Contains(d.ContentHash) && d.Application.Status != 1 && d.Application.Status != 10)) {
+            anomalies.Add(await SaveOnceAsync(new Anomaly { ApplicationId = applicationId, UserId = application.UserId, AnomalyType = "RepeatedDocument", Severity = "Medium", Status = "Open", Description = "An identical supporting-file checksum appears in another submitted application. Shared evidence may be legitimate; investigate before drawing conclusions.", DetectionDetails = JsonSerializer.Serialize(new { comparison = "SHA-256 exact content", otherIdentitiesDisclosed = false }) }));
+        }
 
+        var configuration = await _context.DetectionSettings.AsNoTracking().FirstOrDefaultAsync();
+        if (configuration?.EnableExperimentalModel == true) {
+            var prior = await _context.WelfareApplications.AsNoTracking().Where(a => a.WelfareProgramId == application.WelfareProgramId && a.Status == 8 && a.UpdatedAt < application.SubmittedAt && a.Id != applicationId)
+                .OrderByDescending(a => a.UpdatedAt).Take(500).Select(a => (double)a.RequestedAmount).ToListAsync();
+            var model = AmountNoveltyModel.Evaluate(prior, (double)application.RequestedAmount);
+            if (model.IsNovel) anomalies.Add(await SaveOnceAsync(new Anomaly { ApplicationId = applicationId, UserId = application.UserId, AnomalyType = "ExperimentalAmountNovelty", Severity = "Medium", Status = "Open",
+                Description = "Experimental nearest-neighbour amount model found a request unlike the historical approved amounts for this program. This is a review aid, not a fraud finding or probability.", DetectionDetails = JsonSerializer.Serialize(new { model = "kNN amount novelty v1", model.Samples, model.Distance, model.Threshold, minimumHistory = 50 }) }));
+        }
         application.AnomalyFlags = JsonSerializer.Serialize(anomalies.Select(a => a.AnomalyType).Distinct());
         await _context.SaveChangesAsync();
         if (transaction != null) await transaction.CommitAsync();

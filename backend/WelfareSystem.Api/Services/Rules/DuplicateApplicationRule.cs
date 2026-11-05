@@ -23,7 +23,7 @@ public class DuplicateApplicationRule : IRule
         var duplicates = context.UserApplications
             .Where(a => a.WelfareProgramId == context.Program.Id &&
                        Math.Abs(a.RequestedAmount - context.RequestedAmount) < 10 &&
-                       a.SubmittedAt >= DateTime.UtcNow.AddDays(-30))
+                       a.Status != 10 && a.SubmittedAt >= context.ApplicationDate.AddDays(-30))
             .ToList();
 
         if (duplicates.Any())

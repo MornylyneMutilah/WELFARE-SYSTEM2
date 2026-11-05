@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+
 import { useLiveData } from '@/lib/hooks/useLiveData';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { applicationsApi } from '@/lib/api/applications';
 import AppShell from '@/components/layout/AppShell';
 import Alert from '@/components/ui/Alert';
@@ -10,28 +11,14 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
 export default function ApplicationsPage() {
-  const { data, error: loadError, loading: isLoading, refresh: load } = useLiveData(applicationsApi.getApplications);
+  const { data, error: loadError, loading: isLoading } = useLiveData(applicationsApi.getApplications);
+  const router = useRouter();
   const applications = data ?? [];
-  const [error, setError] = useState('');
-  const [busyId, setBusyId] = useState<number | null>(null);
-  const submit = async (id: number) => {
-    setBusyId(id);
-    try {
-      await applicationsApi.submitApplication(id);
-      await load();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || 'Submit failed.');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   return (
     <AppShell title="My applications" description="Only your own applications are listed. Status changes are enforced on the server.">
-      {(error || loadError) && (
+      {loadError && (
         <div className="mb-4">
-          <Alert tone="error">{error || loadError}</Alert>
+          <Alert tone="error">{loadError}</Alert>
         </div>
       )}
       <div className="mb-4">
@@ -60,7 +47,7 @@ export default function ApplicationsPage() {
             <tbody>
               {applications.map((app) => (
                 <tr key={app.id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 font-medium text-gray-900">{app.id}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900"><Link className="text-red-700 underline" href={`/employee/applications/${app.id}`}>#{app.id} · View timeline</Link></td>
                   <td className="px-4 py-3 text-gray-900">{app.programName}</td>
                   <td className="px-4 py-3 text-gray-900">{app.requestedAmount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-gray-800">{app.statusName}</td>
@@ -69,10 +56,9 @@ export default function ApplicationsPage() {
                       <Button
                         variant="primary"
                         className="px-3 py-1 text-xs"
-                        loading={busyId === app.id}
-                        onClick={() => submit(app.id)}
+                        onClick={() => router.push(`/employee/applications/${app.id}`)}
                       >
-                        Submit
+                        Review and submit
                       </Button>
                     )}
                   </td>

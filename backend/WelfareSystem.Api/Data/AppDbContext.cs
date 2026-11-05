@@ -10,6 +10,10 @@ public class AppDbContext : DbContext
     }
 
     // DbSets
+    public DbSet<AccountActionToken> AccountActionTokens => Set<AccountActionToken>();
+    public DbSet<DecisionAmendment> DecisionAmendments => Set<DecisionAmendment>();
+    public DbSet<ProgramBudget> ProgramBudgets => Set<ProgramBudget>();
+    public DbSet<DetectionSettings> DetectionSettings => Set<DetectionSettings>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
@@ -30,6 +34,22 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<AccountActionToken>().HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<AccountActionToken>().HasIndex(x => new { x.UserId, x.Purpose, x.CreatedAt });
+        modelBuilder.Entity<DecisionAmendment>().HasOne<ApplicationReview>().WithMany().HasForeignKey(x => x.ReviewId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DecisionAmendment>().HasOne<User>().WithMany().HasForeignKey(x => x.RequestedBy).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DecisionAmendment>().HasOne<User>().WithMany().HasForeignKey(x => x.ResolvedBy).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DecisionAmendment>().HasOne<WelfareApplication>().WithMany().HasForeignKey(x => x.ReconsiderationApplicationId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProgramBudget>().HasIndex(x => new { x.WelfareProgramId, x.Year }).IsUnique();
+        modelBuilder.Entity<ProgramBudget>().Property(x => x.AllocatedAmount).HasPrecision(18, 2);
+        modelBuilder.Entity<ProgramBudget>().Property(x => x.ProposedAmount).HasPrecision(18, 2);
+        modelBuilder.Entity<ProgramBudget>().HasOne<User>().WithMany().HasForeignKey(x => x.RequestedBy).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProgramBudget>().HasOne<User>().WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProgramBudget>().HasOne<WelfareProgram>().WithMany().HasForeignKey(x => x.WelfareProgramId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ApplicationDocument>().Property(x => x.RequirementName).HasMaxLength(200);
+        modelBuilder.Entity<ApplicationDocument>().Property(x => x.ContentHash).HasMaxLength(64);
+        modelBuilder.Entity<ApplicationDocument>().HasIndex(x => x.ContentHash);
+        modelBuilder.Entity<ApplicationDocument>().Property(x => x.ScanStatus).HasMaxLength(50);
 
         // Configure User entity
         modelBuilder.Entity<User>(entity =>

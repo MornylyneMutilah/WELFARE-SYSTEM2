@@ -18,6 +18,7 @@ function NewApplicationContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [createdId, setCreatedId] = useState<number | null>(null);
   const [step, setStep] = useState<'form' | 'review'>('form');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -52,6 +53,7 @@ function NewApplicationContent() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     if (!validate()) {
       setStep('form');
       return;
@@ -66,8 +68,9 @@ function NewApplicationContent() {
         reason: formData.reason.trim(),
       });
       setSuccess(
-        `Application ${application.id} was created as a draft. Next, submit it from My Applications when your documents are ready.`
+        `Application ${application.id} was created as a draft. Next, add supporting documents, review the eligibility checks, and confirm submission.`
       );
+      setCreatedId(application.id);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Failed to create application');
@@ -81,8 +84,8 @@ function NewApplicationContent() {
       {success && (
         <div className="mb-6 space-y-3">
           <Alert tone="success">{success}</Alert>
-          <Button variant="primary" onClick={() => router.push('/employee/applications')}>
-            View my applications
+          <Button variant="primary" onClick={() => router.push(createdId ? `/employee/applications/${createdId}` : '/employee/applications')}>
+            Add documents and review draft
           </Button>
         </div>
       )}

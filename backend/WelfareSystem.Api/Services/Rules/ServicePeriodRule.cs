@@ -32,6 +32,7 @@ public class ServicePeriodRule : IRule
     private int CalculateServicePeriod(DateTime hireDate, DateTime currentDate)
     {
         var months = (currentDate.Year - hireDate.Year) * 12 + currentDate.Month - hireDate.Month;
+        if (months > 0 && hireDate.Date.AddMonths(months) > currentDate.Date) months--;
         return Math.Max(0, months);
     }
 }

@@ -8,6 +8,7 @@ import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { TextField } from '@/components/ui/Field';
+import ConnectedSignIns from '@/components/common/ConnectedSignIns';
 
 export default function ProfilePage() {
   const { user, refreshUserData } = useAuth();
@@ -115,6 +116,7 @@ export default function ProfilePage() {
           </dl>
         )}
       </Card>
+      <ConnectedSignIns />
     </AppShell>
   );
 }

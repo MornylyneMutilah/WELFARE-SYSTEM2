@@ -95,3 +95,5 @@ temp/
 
 # Developer-only backend settings (database credentials)
 appsettings.Local.json
+App_Data/
+backups/

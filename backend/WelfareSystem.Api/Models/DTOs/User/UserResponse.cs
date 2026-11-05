@@ -2,6 +2,9 @@ namespace WelfareSystem.Api.Models.DTOs.User;
 
 public class UserResponse
 {
+    public bool EmailVerified { get; set; }
+    public bool MustChangePassword { get; set; }
+    public DateTime? EmploymentVerifiedAt { get; set; }
     public int Id { get; set; }
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;

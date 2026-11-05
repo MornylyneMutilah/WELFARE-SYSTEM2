@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { navigationForRole, ROLE_LABELS, isAppRole } from '@/lib/auth/roles';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
+import WelfareExplorer from '@/components/common/WelfareExplorer';
 
 interface AppShellProps {
   title: string;
@@ -65,7 +66,7 @@ export default function AppShell({ title, description, requiredRole, children }:
             })}
           </nav>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{pathname.endsWith('/dashboard') && <WelfareExplorer role={user?.role} />}{children}</main>
       </div>
     </ProtectedRoute>
   );

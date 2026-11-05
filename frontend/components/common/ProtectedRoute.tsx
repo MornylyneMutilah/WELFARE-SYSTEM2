@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 interface ProtectedRouteProps {
@@ -12,12 +12,14 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+    if (!isLoading && user?.mustChangePassword && pathname !== '/account/security') router.replace('/account/security');
+  }, [isAuthenticated, isLoading, router, user?.mustChangePassword, pathname]);
 
   if (isLoading) {
     return (
@@ -30,6 +32,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   if (!isAuthenticated) {
     return null;
   }
+  if (user?.mustChangePassword && pathname !== '/account/security') return null;
 
   if (requiredRole && user?.role !== requiredRole) {
     return (

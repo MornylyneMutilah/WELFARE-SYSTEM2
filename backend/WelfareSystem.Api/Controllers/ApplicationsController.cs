@@ -125,7 +125,9 @@ public class ApplicationsController : ControllerBase
     public async Task<IActionResult> SubmitApplication(int id)
     {
         if (!await OwnsApplication(id)) return NotFound();
-        var application = await _welfareApplicationService.SubmitApplicationAsync(id);
+        WelfareSystem.Api.Models.DTOs.Application.ApplicationResponse? application;
+        try { application = await _welfareApplicationService.SubmitApplicationAsync(id); }
+        catch (WelfareSystem.Api.Services.SubmissionValidationException error) { return BadRequest(new { message = error.Message, errors = error.Issues }); }
         if (application == null)
         {
             return BadRequest(new { message = "Submission failed. Application not found or not in draft status." });

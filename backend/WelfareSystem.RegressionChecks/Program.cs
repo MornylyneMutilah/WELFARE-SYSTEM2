@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using WelfareSystem.Api.Models.DTOs.Auth;
 using WelfareSystem.Api.Controllers;
@@ -38,7 +39,7 @@ try
     User MakeUser(string role, int dept, string key) => new() {
         Email = $"regression-{key}-{suffix}@example.invalid", EmployeeId = key + suffix,
         FirstName = "Regression", LastName = key, PasswordHash = "unused-in-checks",
-        DepartmentId = dept, RoleId = roles[role].Id, IsActive = true, HireDate = DateTime.UtcNow.AddYears(-3)
+        DepartmentId = dept, RoleId = roles[role].Id, IsActive = true, HireDate = DateTime.UtcNow.AddYears(-3), EmploymentVerifiedAt = DateTime.UtcNow
     };
     var employee = MakeUser("Employee", departments[0].Id, "employee");
     var other = MakeUser("Employee", departments[1].Id, "other");
@@ -142,7 +143,7 @@ try
     var profilePayload = JsonSerializer.Deserialize<WelfareSystem.Api.Models.DTOs.User.UpdateProfileRequest>(
         JsonSerializer.Serialize(new { email = employee.Email, firstName = "Edited", lastName = employee.LastName,
             roleId = admin.RoleId, departmentId = other.DepartmentId, isActive = false }), new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
-    var profile = await new UserService(new UserRepository(db), new PasswordHasher()).UpdateProfileAsync(employee.Id, profilePayload);
+    var profile = await new UserService(new UserRepository(db), new PasswordHasher(), db).UpdateProfileAsync(employee.Id, profilePayload);
     Check(profile?.FirstName == "Edited", "Profile edits save personal fields");
     Check(profile?.RoleName == "Employee" && profile.DepartmentId == departments[0].Id && profile.IsActive,
         "Profile payload cannot change role, department, or active status");
@@ -296,9 +297,63 @@ try
         "Creation, suspension, and reactivation have audit records");
     Check(administrationAudit.All(a => a.UserId == admin.Id && !a.Details.Contains("Regression-only-Password123!")), "Audit records identify the administrator and never store the password");
     Check(await db.Users.AnyAsync(u => u.Id == corrected.Id), "Account status changes preserve the user record");
-    var listedManaged = (await new UserService(new UserRepository(db), new PasswordHasher()).GetAllUsersAsync()).Single(u => u.Id == corrected.Id);
+    var listedManaged = (await new UserService(new UserRepository(db), new PasswordHasher(), db).GetAllUsersAsync()).Single(u => u.Id == corrected.Id);
     Check(listedManaged.RoleName == "HROfficer" && !string.IsNullOrEmpty(listedManaged.DepartmentName),
         "Administrator user listings include role and department names for filtering");
+    var programService = new WelfareProgramService(new WelfareProgramRepository(db));
+    var programsController = new WelfareProgramsController(programService, db) { ControllerContext = As(admin).ControllerContext };
+    var createdProgramResult = (CreatedAtActionResult)await programsController.CreateProgram(new() {
+        Name = "Managed program " + suffix, Description = "Regression welfare program", Category = "Regression",
+        MaxAmount = 5000, MinServicePeriod = 6, RequiredDocuments = "[\"Supporting letter\"]", Reason = "Create fixture program"
+    });
+    var managedProgram = (WelfareSystem.Api.Models.DTOs.WelfareProgram.WelfareProgramResponse)createdProgramResult.Value!;
+    Check(managedProgram.IsActive && managedProgram.MaxAmount == 5000 && managedProgram.MinServicePeriod == 6,
+        "Administrator creates an active program with amount and service requirements");
+    Check((await programService.GetActiveProgramsAsync()).Any(p => p.Id == managedProgram.Id), "New programs appear in the employee active-program listing");
+    Check(await programsController.CreateProgram(new() { Name = managedProgram.Name, Description = "Duplicate", Category = "Regression",
+        MaxAmount = 10, MinServicePeriod = 0, RequiredDocuments = "[]" }) is ConflictObjectResult, "Duplicate program names are rejected");
+    Check(await programService.CreateProgramAsync(new() { Name = "Invalid documents", Description = "Invalid", Category = "Regression",
+        MaxAmount = 10, RequiredDocuments = "not-json" }) == null, "Malformed document requirements are rejected by the backend");
+    Check(await programService.CreateProgramAsync(new() { Name = "Invalid amount", Description = "Invalid", Category = "Regression",
+        MaxAmount = -1, RequiredDocuments = "[]" }) == null, "Invalid maximum amounts are rejected by the backend");
+    var managedDraft = await submissionService.CreateApplicationAsync(employee.Id, new() { WelfareProgramId = managedProgram.Id,
+        RequestedAmount = 100, Reason = "Regression new program draft" });
+    Check(managedDraft != null, "Employees can create applications for a newly created active program");
+    WelfareSystem.Api.Models.DTOs.WelfareProgram.UpdateWelfareProgramRequest ProgramUpdate(bool active, DateTime expected) => new() {
+        Name = managedProgram.Name, Description = "Updated program", Category = "Regression", MaxAmount = 6000,
+        MinServicePeriod = 3, RequiredDocuments = "[]", IsActive = active, Reason = "Program update regression", ExpectedUpdatedAt = expected
+    };
+    Check(await programsController.UpdateProgram(managedProgram.Id, ProgramUpdate(true, managedProgram.UpdatedAt.AddDays(-1))) is ConflictObjectResult,
+        "Stale program edits cannot overwrite newer changes");
+    var updatedResult = (OkObjectResult)await programsController.UpdateProgram(managedProgram.Id, ProgramUpdate(false, managedProgram.UpdatedAt));
+    var inactiveProgram = (WelfareSystem.Api.Models.DTOs.WelfareProgram.WelfareProgramResponse)updatedResult.Value!;
+    Check(!inactiveProgram.IsActive && inactiveProgram.MaxAmount == 6000, "Administrators can edit program rules and deactivate the program");
+    Check(!(await programService.GetActiveProgramsAsync()).Any(p => p.Id == managedProgram.Id), "Inactive programs disappear from active listings");
+    Check(await submissionService.SubmitApplicationAsync(managedDraft!.Id) == null, "A deactivated program cannot receive new draft submissions");
+    Check(await db.WelfareApplications.AnyAsync(a => a.Id == managedDraft.Id), "Program deactivation preserves existing application records");
+    var restoredProgram = await programsController.UpdateProgram(managedProgram.Id, ProgramUpdate(true, inactiveProgram.UpdatedAt));
+    Check(restoredProgram is OkObjectResult && (await programService.GetActiveProgramsAsync()).Any(p => p.Id == managedProgram.Id), "Administrators can reactivate programs");
+    Check(await db.AuditLogs.AnyAsync(a => a.EntityType == "WelfareProgram" && a.EntityId == managedProgram.Id.ToString() && a.UserId == admin.Id),
+        "Program changes have administrator-attributed audit records");
+    await SocialAuthChecks.Run(db, created!.User.Id, registration.Password, corrected.Id, "Regression-only-Password123!", new TokenService(tokenConfig), Check);
+    await EvidenceRecordsChecks.Run(db, employee, other, hr, committee, manager, admin, submissionService, reviewService, Check);
+    await OperationalWorkflowChecks.Run(db, employee, other, hr, committee, manager, admin, submissionService, reviewService, Check);
+    // A fresh request context must load names without relying on EF's previously tracked fixture entities.
+    await using (var listingDb = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(db.Database.GetDbConnection()).Options)) {
+        await listingDb.Database.UseTransactionAsync(transaction.GetDbTransaction());
+        var listingRepository = new WelfareApplicationRepository(listingDb);
+        var personalApplications = (await listingRepository.GetByUserIdAsync(employee.Id)).ToList();
+        Check(personalApplications.Count > 0 && personalApplications.All(a => !string.IsNullOrWhiteSpace(a.WelfareProgram?.Name) && !string.IsNullOrWhiteSpace(a.User?.FirstName)),
+            "Personal application listings load program and employee names in a fresh request context");
+        listingDb.ChangeTracker.Clear();
+        var programApplications = (await listingRepository.GetByWelfareProgramIdAsync(program.Id)).ToList();
+        Check(programApplications.Count > 0 && programApplications.All(a => !string.IsNullOrWhiteSpace(a.WelfareProgram?.Name)),
+            "Program application listings load program names without tracked navigation entities");
+        listingDb.ChangeTracker.Clear();
+        var submittedApplications = (await listingRepository.GetByStatusAsync(2)).ToList();
+        Check(submittedApplications.Count > 0 && submittedApplications.All(a => !string.IsNullOrWhiteSpace(a.WelfareProgram?.Name)),
+            "Status application listings retain program names in a fresh request context");
+    }
     Console.WriteLine($"{passed} regression checks passed.");
 }
 finally

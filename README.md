@@ -2,7 +2,7 @@
 
 A role-based web application for employee welfare administration, built with Next.js, ASP.NET Core, and PostgreSQL. The platform supports application tracking, staged approvals, account administration, rule-based eligibility assessment, and anomaly detection.
 
-**Current status — 2 November 2026:** functional local development platform with employee, HR, welfare committee, management, and administrator dashboards. The latest verified revision passes frontend lint, a production frontend build, backend compilation, and 94 database-backed regression checks. See [Known limitations](#known-limitations) before planning a deployment.
+**Current status — 3 November 2026:** functional local development platform with employee, HR, welfare committee, management, and administrator dashboards. The latest verified revision passes frontend lint, a production frontend build, backend compilation, and 261 database-backed regression checks. See [Known limitations](#known-limitations) before planning a deployment.
 
 ## Core capabilities
 
@@ -11,6 +11,8 @@ A role-based web application for employee welfare administration, built with Nex
 - Three-step email registration: personal details, requested account type, and review with explicit confirmation.
 - Public registration creates an Employee account. Organizational roles require administrator approval.
 - Email/password authentication with BCrypt hashing and JWT access/refresh tokens.
+- Expiring, single-use password reset, email verification and setup-invitation links; administrator-created accounts must replace their initial password.
+- Development emails use a clearly labelled private outbox; real SMTP delivery requires configuration.
 - Role-based navigation backed by API authorization.
 - Account suspension blocks subsequent authenticated requests and new sign-ins. Reactivation requires a fresh login; previously invalidated sessions remain invalid.
 
@@ -40,6 +42,13 @@ Rejection at an authorized stage stops the application. Committee endorsement is
 - Administrators see platform totals and pending applications across all review stages.
 - Visible dashboards refresh after successful writes, on tab focus, and every 10 seconds. Updates also propagate between tabs through browser storage events.
 
+### Administrator program management
+
+- Create, edit, deactivate, and reactivate welfare programs from Administrator → Programs.
+- Define amount limits, minimum service months, document instructions, and categories.
+- Audited changes, duplicate-name checks, stale-edit protection, and automatic employee-list refresh.
+- Existing application history is preserved; inactive programs cannot receive draft submissions.
+
 ### Administrator user management
 
 - Create accounts; edit names, email addresses, employee IDs, roles, departments, and hire dates.
@@ -51,6 +60,16 @@ Rejection at an authorized stage stops the application. Committee endorsement is
 - Invalidate existing sessions after role, department, or account-status changes.
 
 See [Administrator user management](docs/ADMIN_USER_MANAGEMENT.md) for operating instructions and safeguards.
+
+## Evidence, decision records and reports
+
+- Application workspaces support draft edits, private document uploads/downloads, explicit submission confirmation, and a status/decision timeline.
+- HR, committee and management have a searchable Decision register; administrators can inspect all stages.
+- New decision confirmations retain application and reviewer snapshots, full notes, and a document manifest. Old records clearly disclose missing historical snapshots.
+- Administrator audit browsing is read-only and paginated. Application, decision and audit CSV exports enforce role access and mitigate spreadsheet formula injection.
+- Print reports and decision confirmations using the browser, including Save as PDF.
+
+See [Evidence and decision records](docs/EVIDENCE_AND_DECISION_RECORDS.md) for usage, storage configuration, backups, permissions, and remaining limits.
 
 ## Decision support
 
@@ -66,7 +85,7 @@ When an application is created, the backend evaluates:
 - Existing pending or recently decided applications for the same program.
 - Similar applications for the same program and amount.
 
-The assessment and individual rule results are stored with the application. Most failed checks produce an ineligible assessment for review rather than automatically blocking submission. Existing assessments are not automatically recalculated after a draft edit or hire-date correction. The current service-period calculation compares calendar months rather than exact completed months.
+Assessments are recalculated on draft creation, draft editing, and submission, with separate audit snapshots of the inputs and rule results. Submission uses current hire dates and program requirements, and excludes the application from its own comparisons. Service periods use completed calendar months. Submission requires active accounts/programs, verified employment dates, minimum service, amount limits and categorized required evidence. Duplicate/frequency concerns remain advisory. Submitted assessments are retained rather than rewritten by later source-data changes.
 
 ### Anomaly detection
 
@@ -210,8 +229,8 @@ The latest local implementation was verified with:
 
 - Backend compilation with zero warnings/errors.
 - Frontend ESLint and a production build, including TypeScript checking.
-- **94 PostgreSQL-backed regression checks**, covering registration/login, privileged-role requests, application ownership, review stage order, cross-role dashboard counts, anomaly detection, account administration, audit records, and token revocation.
-- Live HTTP authorization checks and browser checks of the registration wizard, HR dashboard, and administrator user-management controls.
+- **261 PostgreSQL-backed regression checks**, covering registration/login, privileged-role requests, application ownership, review stage order, cross-role dashboard counts, anomaly detection, account administration, audit records, token revocation, program management, and simulated social-provider flows with signed Google token validation, private document persistence and authorization, eligibility snapshots, historical decision confirmations, audit access, CSV exports, mandatory submission checks, account recovery, budgets, independent amendments, scanner protocol, maintenance and experimental-model fixtures.
+- Live HTTP authorization checks and browser checks of the registration wizard, HR dashboard, and administrator user-management controls, program creation controls, and unconfigured provider states.
 
 Run frontend checks:
 
@@ -247,13 +266,23 @@ The runner rolls back its fixture records. PostgreSQL identity sequences may adv
 
 ## Known limitations
 
-- **Social sign-in:** Google, GitHub, and X buttons remain disabled without provider credentials. The inherited OAuth implementation still needs provider testing and security hardening before activation, including browser-bound state, Google nonce/ID-token verification, exchange-code expiry, and configured callback-origin checks. No provider is claimed as production-ready.
-- **Eligibility:** failed assessments are generally advisory; assessments are not automatically rerun after later data edits. Registration may default an unspecified hire date to one year ago; administrators should correct it from verified employment records.
-- **Documents:** the current upload endpoint records metadata; it does not persist the uploaded file contents. Production document storage, protected downloads, content verification, and malware scanning remain outstanding.
-- **Financial reporting:** approved requested amounts are tracked, not actual payment/disbursement transactions. Budget utilization and payment reconciliation are not implemented.
-- **Anomaly roadmap:** document-content duplication, login/location/session anomaly models, configurable threshold management, whitelisting, scheduled email digests, and advanced anomaly reports are not implemented or verified.
-- **Account provisioning:** automatic invitations, email verification, password recovery, and mandatory first-login password changes are not implemented.
+- **Social sign-in:** hardened Google, GitHub, and X flows include browser-bound state, PKCE, signed Google ID-token and nonce validation, expiring single-use exchange codes, and fixed callback/origin checks. Existing accounts link providers through password-confirmed Profile controls; accounts are never automatically linked by email. Real provider credentials and live provider testing remain required. See [social sign-in setup](docs/SOCIAL_SIGN_IN.md).
+- **Employment and evidence:** administrators must verify genuine employment dates; migration does not invent verification. Submission enforces mandatory requirements and categorized file presence. Reviewers still verify authenticity; old metadata-only files cannot be recovered.
+- **Documents:** private storage, quotas, categories, checksums and scanner integration are implemented. Local development is explicitly unscanned without a configured daemon; production uploads fail closed. A real updated private scanner and durable deployment volumes still require operator setup.
+- **Financial scope:** administrator-proposed, management-approved annual budgets track approved commitments. Payment/disbursement recording and bank transfers are deliberately excluded.
+- **Anomaly evaluation:** configurable thresholds and exact-file duplication are implemented. The optional nearest-neighbour amount model is disabled by default, needs 50 prior approvals per program, and has synthetic fixture tests rather than validated institutional performance. Login/location models, whitelists and scheduled digests remain outside this implementation.
+- **Account delivery:** recovery, verification, invitations and initial password changes are implemented; real SMTP delivery still needs credentials and a delivery test.
 - **Updates:** dashboards use polling and browser events, not a server-push messaging service.
+
+## Operational workflows and interactive dashboards
+
+- Mandatory eligibility and categorized supporting-document checks are enforced on submission.
+- Independent appeals and correction addenda preserve original decisions; accepted appeals create a linked reconsideration draft.
+- Administrators propose annual budgets; management approves them. Allocation, commitments and remaining amounts are shown without claiming payments.
+- Readiness, maintenance controls, health endpoints and coordinated backup/isolated restore scripts support deployment preparation.
+- Dashboard support explorers have topic selection and a 2D/3D depth toggle, with reduced-motion support and accessible controls.
+
+See the [operating guide](docs/OPERATING_GUIDE.md) for configuration, migrations, validation and external service requirements.
 
 ## Deployment considerations
 
@@ -263,6 +292,7 @@ Build the frontend with `npm run build`, then run it with `npm start`. The curre
 
 ## Documentation
 
+- [Operating guide and completion status](docs/OPERATING_GUIDE.md)
 - [Administrator user management](docs/ADMIN_USER_MANAGEMENT.md)
 - [Environment setup](ENV_SETUP.md)
 - [Requirements](docs/REQUIREMENTS.md)
@@ -270,6 +300,7 @@ Build the frontend with `npm run build`, then run it with `npm start`. The curre
 - [Database](docs/DATABASE.md)
 - [API reference](docs/API.md)
 - [Deployment notes](docs/DEPLOYMENT.md)
-- [Implementation continuation and limitations](DEVIN_HANDOFF_CONTINUATION.md)
+- [Social sign-in setup and program management](docs/SOCIAL_SIGN_IN.md)
+- [Evidence, eligibility, decision records and reports](docs/EVIDENCE_AND_DECISION_RECORDS.md)
 
 Some older planning and status documents describe targets rather than completed features. Use this README, the administration guide, and the current source/tests as the status reference.

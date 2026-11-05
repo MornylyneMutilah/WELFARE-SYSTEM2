@@ -9,6 +9,7 @@ public class LoginResponse
 
 public class UserDto
 {
+    public bool MustChangePassword { get; set; }
     public int Id { get; set; }
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;

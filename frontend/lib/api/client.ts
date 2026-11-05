@@ -23,6 +23,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED') window.location.assign(new URL('/account/security', window.location.origin).href);
     return Promise.reject(error);
   }
 );

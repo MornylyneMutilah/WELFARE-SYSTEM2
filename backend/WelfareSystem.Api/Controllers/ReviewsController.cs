@@ -97,7 +97,7 @@ public class ReviewsController : ControllerBase
         var review = await _reviewService.UpdateReviewAsync(id, request);
         if (review == null)
         {
-            return BadRequest(new { message = "Update failed. Review not found." });
+            return BadRequest(new { message = "Recorded decisions and review notes cannot be overwritten. The original confirmation is retained for audit." });
         }
 
         return Ok(review);

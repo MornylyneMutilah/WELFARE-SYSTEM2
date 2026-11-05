@@ -9,26 +9,33 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly WelfareSystem.Api.Data.AppDbContext _context;
 
     public UserService(
         IUserRepository userRepository,
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher, WelfareSystem.Api.Data.AppDbContext context)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
+        _context = context;
     }
 
     public async Task<UserResponse?> UpdateProfileAsync(int id, UpdateProfileRequest request)
     {
+        await using var tx = _context.Database.CurrentTransaction == null ? await _context.Database.BeginTransactionAsync() : null;
+        await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(_context.Database, "SELECT pg_advisory_xact_lock(81542001)");
         var user = await _userRepository.GetByIdWithIncludesAsync(id);
         if (user == null || !user.IsActive) return null;
+        await _context.Entry(user).ReloadAsync();
         var existing = await _userRepository.GetByEmailAsync(request.Email);
         if (existing != null && existing.Id != id) return null;
-        user.Email = request.Email;
+        if (!string.Equals(user.Email, request.Email.Trim(), StringComparison.OrdinalIgnoreCase)) { user.EmailVerified = false; user.TokenVersion++; }
+        user.Email = request.Email.Trim();
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.UpdateAsync(user);
+        if (tx != null) await tx.CommitAsync();
         return MapToResponse(user);
     }
 
@@ -167,6 +174,7 @@ public class UserService : IUserService
             RoleName = user.Role?.Name ?? string.Empty,
             IsActive = user.IsActive,
             HireDate = user.HireDate,
+            EmailVerified = user.EmailVerified, MustChangePassword = user.MustChangePassword, EmploymentVerifiedAt = user.EmploymentVerifiedAt,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };

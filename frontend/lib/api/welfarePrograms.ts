@@ -20,6 +20,7 @@ export interface CreateWelfareProgramRequest {
   maxAmount: number;
   minServicePeriod: number;
   requiredDocuments: string;
+  reason?: string;
 }
 
 export interface UpdateWelfareProgramRequest {
@@ -30,6 +31,8 @@ export interface UpdateWelfareProgramRequest {
   minServicePeriod: number;
   requiredDocuments: string;
   isActive: boolean;
+  reason?: string;
+  expectedUpdatedAt?: string;
 }
 
 export const welfareProgramsApi = {

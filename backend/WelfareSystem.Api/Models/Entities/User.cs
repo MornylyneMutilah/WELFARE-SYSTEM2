@@ -13,6 +13,9 @@ public class User
     public int RoleId { get; set; }
     public bool IsActive { get; set; } = true;
     public int TokenVersion { get; set; }
+    public bool EmailVerified { get; set; }
+    public bool MustChangePassword { get; set; }
+    public DateTime? EmploymentVerifiedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
