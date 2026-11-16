@@ -1,413 +1,67 @@
-# Welfare Management System API Documentation
-
-## Base URL
-```
-http://localhost:5000/api
-```
-
-## Authentication
-
-All endpoints except `/api/auth/*` require JWT authentication. Include the token in the Authorization header:
-
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-## Endpoints
-
-### Authentication
-
-#### POST /api/auth/login
-Login to the system.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "Password123!"
-}
-```
-
-**Response:**
-```json
-{
-  "token": "jwt-token",
-  "refreshToken": "refresh-token",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "Employee"
-  }
-}
-```
-
-#### POST /api/auth/register
-Register a new user.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "Password123!",
-  "firstName": "John",
-  "lastName": "Doe",
-  "employeeId": "EMP001",
-  "departmentId": 1
-}
-```
-
-**Response:**
-```json
-{
-  "token": "jwt-token",
-  "refreshToken": "refresh-token",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "role": "Employee"
-  }
-}
-```
-
-#### POST /api/auth/refresh
-Refresh an expired JWT token.
-
-**Request Body:**
-```json
-{
-  "refreshToken": "refresh-token"
-}
-```
-
-**Response:**
-```json
-{
-  "token": "new-jwt-token",
-  "refreshToken": "new-refresh-token"
-}
-```
-
-### Users
-
-#### GET /api/users/me
-Get current user profile.
-
-**Response:**
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "employeeId": "EMP001",
-  "departmentId": 1,
-  "role": "Employee"
-}
-```
-
-#### GET /api/users
-Get all users (Admin only).
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "employeeId": "EMP001",
-    "departmentId": 1,
-    "role": "Employee"
-  }
-]
-```
-
-### Departments
-
-#### GET /api/departments
-Get all departments.
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Engineering",
-    "description": "Engineering Department"
-  }
-]
-```
-
-### Welfare Programs
-
-#### GET /api/welfare-programs
-Get all welfare programs.
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Medical Assistance",
-    "description": "Financial assistance for medical expenses",
-    "category": "Medical",
-    "maxAmount": 5000.00,
-    "minServicePeriod": 6,
-    "requiredDocuments": "[\"Medical Report\", \"Receipts\"]",
-    "isActive": true
-  }
-]
-```
-
-#### GET /api/welfare-programs/{id}
-Get a specific welfare program.
-
-#### GET /api/welfare-programs/public
-Get all active public programs (no auth required).
-
-### Applications
-
-#### GET /api/applications
-Get current user's applications.
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "userId": 1,
-    "userName": "John Doe",
-    "welfareProgramId": 1,
-    "programName": "Medical Assistance",
-    "status": 2,
-    "statusName": "Submitted",
-    "requestedAmount": 2500.00,
-    "reason": "Medical treatment",
-    "isEligible": true,
-    "submittedAt": "2024-01-15T10:00:00Z"
-  }
-]
-```
-
-#### GET /api/applications/all
-Get all applications (HR and above).
-
-#### GET /api/applications/{id}
-Get a specific application.
-
-#### POST /api/applications
-Create a new application.
-
-**Request Body:**
-```json
-{
-  "welfareProgramId": 1,
-  "requestedAmount": 2500.00,
-  "reason": "Medical treatment"
-}
-```
-
-#### PUT /api/applications/{id}
-Update an application (draft only).
-
-**Request Body:**
-```json
-{
-  "requestedAmount": 3000.00,
-  "reason": "Updated reason"
-}
-```
-
-#### POST /api/applications/{id}/submit
-Submit an application for review.
-
-#### DELETE /api/applications/{id}
-Cancel an application (draft only).
-
-#### PUT /api/applications/{id}/status
-Update application status (Management and above).
-
-**Request Body:**
-```json
-{
-  "status": 8,
-  "comments": "Approved for final payout"
-}
-```
-
-#### GET /api/applications/{id}/anomalies
-Get anomaly flags for an application.
-
-### Reviews
-
-#### GET /api/reviews/{id}
-Get a specific review.
-
-#### GET /api/reviews/application/{applicationId}
-Get all reviews for an application.
-
-#### POST /api/reviews/application/{applicationId}
-Create a review (HR and above).
-
-**Request Body:**
-```json
-{
-  "recommendation": "Approve",
-  "comments": "Application meets all criteria"
-}
-```
-
-#### PUT /api/reviews/{id}
-Update a review (HR and above).
-
-**Request Body:**
-```json
-{
-  "recommendation": "Reject",
-  "comments": "Insufficient documentation"
-}
-```
-
-### Notifications
-
-#### GET /api/notifications
-Get all user notifications.
-
-**Response:**
-```json
-{
-  "notifications": [
-    {
-      "id": 1,
-      "userId": 1,
-      "title": "Application Approved",
-      "message": "Your application has been approved",
-      "type": "Success",
-      "isRead": false,
-      "createdAt": "2024-01-15T10:00:00Z"
-    }
-  ],
-  "totalCount": 10,
-  "unreadCount": 3
-}
-```
-
-#### GET /api/notifications/unread
-Get unread notifications.
-
-#### GET /api/notifications/unread-count
-Get unread notification count.
-
-**Response:**
-```json
-{
-  "count": 3
-}
-```
-
-#### PUT /api/notifications/{id}/read
-Mark notification as read.
-
-#### PUT /api/notifications/read-all
-Mark all notifications as read.
-
-### Dashboards
-
-#### GET /api/dashboard/employee
-Get employee dashboard (Employee only).
-
-#### GET /api/dashboard/hr
-Get HR dashboard (HR only).
-
-#### GET /api/dashboard/committee
-Get committee dashboard (Committee only).
-
-#### GET /api/dashboard/management
-Get management dashboard (Management only).
-
-#### GET /api/dashboard/admin
-Get admin dashboard (Admin only).
-
-### Reports
-
-#### GET /api/reports/applications-by-status
-Get applications by status report (HR and above).
-
-**Query Parameters:**
-- `startDate` (optional): Filter from date
-- `endDate` (optional): Filter to date
-
-#### GET /api/reports/applications-by-department
-Get applications by department report.
-
-#### GET /api/reports/applications-by-program
-Get applications by program report.
-
-#### GET /api/reports/expenditure
-Get expenditure report.
-
-#### GET /api/reports/processing-time
-Get processing time report.
-
-#### GET /api/reports/flagged-applications
-Get flagged applications report.
-
-### Eligibility
-
-#### POST /api/eligibility/check
-Check eligibility before submitting application.
-
-**Request Body:**
-```json
-{
-  "welfareProgramId": 1,
-  "requestedAmount": 2500.00
-}
-```
-
-**Response:**
-```json
-{
-  "isEligible": true,
-  "ruleResults": [
-    {
-      "isPassed": true,
-      "ruleName": "Service Period",
-      "message": "Service period meets requirement",
-      "details": {}
-    }
-  ],
-  "warningMessages": []
-}
-```
-
-## Status Codes
-
-- `200 OK` - Request successful
-- `201 Created` - Resource created successfully
-- `400 Bad Request` - Invalid request data
-- `401 Unauthorized` - Authentication required or invalid
-- `403 Forbidden` - Insufficient permissions
-- `404 Not Found` - Resource not found
-- `500 Internal Server Error` - Server error
-
-## Error Response Format
-
-```json
-{
-  "message": "Error description"
-}
-```
-
-## Rate Limiting
-
-Currently no rate limiting is implemented. Consider adding for production.
-
-## CORS
-
-CORS is configured to allow requests from `http://localhost:3000` in development.
+# API reference
+
+Development base: `http://localhost:5249/api`. Development Swagger at `http://localhost:5249/swagger` describes DTOs and request schemas. Route names below follow the implemented controllers; methods and access remain enforced by the API.
+
+## Authentication and accounts
+
+- `POST /auth/register`: validated self-registration; creates Employee access. A privileged role string creates, at most, a pending request rather than trusted authority.
+- `POST /auth/login`, `/auth/refresh`, `/auth/logout`: credential/session operations. Access and refresh tokens are not interchangeable.
+- `GET /auth/registration-departments`: permitted registration choices.
+- `/account/*`: password recovery, initial account completion, verification, security status and password change. Inspect Swagger for the individual DTOs.
+- `/users/me`: current authenticated profile; administrative fields are protected from self-service changes.
+- `/users`, `/users/options`, `/role-requests`: trusted administrator management. Roles, departments and active status are checked against current database records.
+- `/auth/external/providers`, `/links`, `/{provider}/start`, `/{provider}/link`, `/{provider}/callback`, `/exchange`: external-provider configuration, explicit linking and authorization-code exchange. See the social-sign-in guide.
+
+JWT validation checks active status, current role and token version. A required initial password change restricts the API until account setup is completed. Browser sessions are tab-specific; this does not grant any extra server permission.
+
+## Programs and applications
+
+- `GET /welfareprograms`, `/welfareprograms/active`, `/welfareprograms/{id}`: program reads.
+- `POST /welfareprograms`, `PUT /welfareprograms/{id}`, `DELETE /welfareprograms/{id}`: Administrator-only creation, editing and deactivation. Updates support `expectedUpdatedAt` conflict protection and an audit reason.
+- `GET /applications`: the authenticated user's applications.
+- `GET /applications/all`: privileged scope; HR remains restricted to its department.
+- `GET /applications/{id}`: permitted application details and saved assessment.
+- `GET /applications/{id}/eligibility-preview`: authorized **draft-only**, read-only assessment using current program, employment and evidence data. Returns `ruleEvaluationResult`, `canSubmit` and `blockingIssues`. It does not overwrite a saved assessment or create audit rows. Submitted applications use their recorded snapshots.
+- `POST /applications`: create an owned draft.
+- `PUT /applications/{id}`: edit an owned draft and record reassessment.
+- `POST /applications/{id}/submit`: recheck current mandatory requirements and commit submission; blocked requests preserve the draft and return explanatory issues.
+- `DELETE /applications/{id}`: permitted draft cancellation.
+- `/reviews/*`: stage-specific HR/committee/management actions, guarded against stage skipping, cross-department HR decisions, self-review and repeated decisions.
+
+Amounts are not validated only by the browser. Draft previews are advisory reads; final submission independently enforces the current server-side requirements inside the coordinated write path.
+
+## Documents, records and reports
+
+- `POST /documents/application/{applicationId}`: multipart upload with `file` and `requirement`, restricted to the active draft owner.
+- `GET /documents/application/{applicationId}`, `/documents/{id}`, `/documents/{id}/content`: authorized metadata and download.
+- `DELETE /documents/{id}`: draft-owner removal; submitted evidence remains retained.
+- `GET /records/applications/{id}`: authorized timeline and supporting history.
+- `GET /records/applications.csv`: role-scoped application export with supported filters.
+- `GET /records/decisions`, `/records/decisions/{id}`, `/records/decisions.csv`: decision register, confirmation and export; privileged scope and record visibility apply.
+- `/reports/*`: scoped status, department, program, commitments, processing-time and flagged-application summaries.
+- `/auditlogs` and `/auditlogs/export.csv`: read-only Administrator audit access. Supported filters include exact action/entity type, actor and date range; paginated listing prevents loading every event at once.
+- `/notifications/*`: authenticated notifications and read state.
+
+Private document content uses authorization, attachment disposition and `nosniff`. CSV generation mitigates spreadsheet formula injection. Export and download activity is audited.
+
+## Other role-scoped operations
+
+- `/dashboards/employee`, `/hr`, `/committee`, `/management`, `/admin`: role-specific statistics.
+- `/anomalies/*`: authorized listing, explanations and attributed investigation/closure actions.
+- `/detectionsettings`: Administrator detection parameters; changes are audited.
+- `/budgets/*`: Administrator proposals and independent management decisions; commitments only.
+- `/amendments/*`: independent appeals and correction addenda preserving original reviews.
+- `GET /operations/status`, `POST /operations/maintenance`: Administrator readiness and maintenance coordination.
+- `GET /health/live`, `GET /health/ready`: anonymous process/readiness checks outside the `/api` prefix.
+
+## Error handling
+
+- `400`: invalid fields, unmet mandatory submission requirements or an operation unsupported for the current draft/state.
+- `401`: absent, expired, revoked or otherwise invalid credentials. Refresh tokens cannot be used as bearer access tokens.
+- `403`: authenticated role is not permitted, or initial password replacement is required. `PASSWORD_CHANGE_REQUIRED` routes the frontend to Account security.
+- `404`: missing or non-visible records, including protected previews.
+- `409`: conflicting or stale edits/decisions.
+- `429`: protected account/OAuth endpoint rate limit.
+- `503`: maintenance/readiness or configured service unavailability, as applicable.
+
+Read the response's `message`/validation issues rather than treating every failed request as the same error. Do not retry an irreversible decision blindly; retrieve current state first.

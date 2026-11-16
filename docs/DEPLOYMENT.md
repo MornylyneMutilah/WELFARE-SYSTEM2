@@ -1,344 +1,59 @@
-# Welfare Management System Deployment Guide
+# Deployment and release notes
 
-## Prerequisites
+The current verified environment is local. This repository does not claim a public production deployment, institutional pilot, formal UAT or certified concurrent-user capacity.
 
-- **Server:** Linux/Windows Server with .NET 8.0 Runtime
-- **Database:** PostgreSQL 15+ (can be on same or separate server)
-- **Web Server:** IIS (Windows) or Nginx/Apache (Linux)
-- **SSL Certificate:** For HTTPS (required for production)
-- **Domain Name:** Optional but recommended
+## Build and run
 
-## Production Deployment Steps
+Use the .NET 10 SDK to build the API and a .NET 10 runtime for a published API. Use Node.js 20.19+, 22.13+ or 24+ with npm for the application/tooling, PostgreSQL, private persistent evidence/mail storage and a suitable HTTPS/reverse-proxy arrangement for external hosting. The development notebook is not a justified minimum server specification.
 
-### 1. Database Setup
-
-#### Create Production Database
-
-```sql
-CREATE DATABASE welfare_system_prod;
-CREATE USER welfare_user WITH PASSWORD 'strong_password_here';
-GRANT ALL PRIVILEGES ON DATABASE welfare_system_prod TO welfare_user;
-```
-
-#### Configure Connection String
-
-Update `appsettings.Production.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=your-db-host;Port=5432;Database=welfare_system_prod;Username=welfare_user;Password=strong_password_here"
-  },
-  "Jwt": {
-    "SecretKey": "REPLACE_WITH_SECURE_RANDOM_KEY_AT_LEAST_32_CHARS",
-    "Issuer": "WelfareSystem",
-    "Audience": "WelfareSystemUsers",
-    "ExpirationMinutes": 60
-  }
-}
-```
-
-**IMPORTANT:** 
-- Use a strong, randomly generated JWT secret key
-- Store secrets in environment variables or secret management system
-- Never commit production secrets to source control
-
-### 2. Backend Deployment
-
-#### Build for Production
-
-```bash
-cd backend/WelfareSystem.Api
-dotnet publish -c Release -o ./publish
-```
-
-#### Option A: Windows with IIS
-
-1. Install ASP.NET Core Hosting Bundle
-2. Create IIS site pointing to `publish` folder
-3. Configure web.config (auto-generated)
-4. Enable HTTPS with SSL certificate
-5. Set appropriate application pool identity
-
-#### Option B: Linux with Nginx
-
-1. Copy `publish` folder to server
-2. Create systemd service:
-
-```ini
-[Unit]
-Description=Welfare System API
-After=network.target
-
-[Service]
-Type=notify
-User=www-data
-WorkingDirectory=/var/www/welfare-system
-ExecStart=/usr/bin/dotnet /var/www/welfare-system/WelfareSystem.Api.dll
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-3. Configure Nginx:
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection keep-alive;
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 3. Frontend Deployment
-
-#### Build for Production
-
-```bash
+```powershell
+# From repository root, with private environment values already configured
+dotnet restore backend/WelfareSystem.Api
+dotnet ef database update --project backend/WelfareSystem.Api
+dotnet publish backend/WelfareSystem.Api -c Release -o ./out/api
 cd frontend
+npm ci
+npm run test:auth
+npm run lint
 npm run build
+npm start
 ```
 
-#### Option A: Serve from Backend
+Stop a running Windows API before rebuilding locked binaries. Publish output is generated and ignored by Git. A frontend production build can be demonstrated locally alongside a Development API; that combination is not a hardened production deployment.
 
-Copy `.next` folder to backend `wwwroot` and configure static file serving in `Program.cs`:
+## Private server settings
 
-```csharp
-app.UseStaticFiles();
-app.UseFileServer();
-```
+- `ConnectionStrings__DefaultConnection`: restricted PostgreSQL connection.
+- `Jwt__SecretKey`: private random signing secret. Production startup explicitly requires this environment setting and at least 32 bytes.
+- `ASPNETCORE_ENVIRONMENT=Production` for an actual production API.
+- `Frontend__BaseUrl` and `Authentication__BackendBaseUrl`: explicit HTTPS origins.
+- `Documents__StoragePath`: private persistent volume, never a public web directory.
+- `Documents__ScannerHost` / `Documents__ScannerPort`: private operational scanner.
+- `Mail__Host`, `Mail__Port`, `Mail__Username`, `Mail__Password`, `Mail__From`: real mail delivery, as described in the operating guide.
+- `Authentication__Google__*` and `Authentication__GitHub__*`: optional provider configuration, server-side only.
 
-#### Option B: Separate Web Server
+`appsettings.Local.json` is ignored and loaded only in Development. Environment variables override development JSON. Do not assume a private local file is read in Production. Keep signing/database/provider/mail credentials out of source, reports, client variables and logs.
 
-1. Upload `.next` folder to web server
-2. Use Node.js server or serve with Nginx:
+The browser setting `NEXT_PUBLIC_API_URL` is public and embedded during frontend build. Rebuild when changing it. Configure the API's permitted frontend origin consistently; OAuth browser cookies require compatible same-site deployment and exact callbacks. Review trusted reverse-proxy handling before external hosting.
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
+Production startup requires a migrated schema and rejects active default demonstration passwords. Replace or disable those accounts before exposure. Production uploads fail closed without configured scanning; production account delivery has no development-outbox fallback.
 
-    root /var/www/welfare-system/.next;
-    try_files $uri $uri/ /index.html;
-}
-```
+## Verify the deployment
 
-#### Option C: Vercel/Netlify (Recommended for Next.js)
+1. Confirm the exact tested source commit and build/configuration used by the processes.
+2. Check the login page, `GET /health/live` and `GET /health/ready`.
+3. Verify an employee draft, evidence upload and current eligibility preview. Confirm that an invalid amount is blocked and a corrected current limit is reflected without replacing history.
+4. Exercise authorized HR → committee → management decisions, employee tracking, decision retrieval and matching exports.
+5. Check suspension/revocation, SMTP inbox delivery, scanner health, storage permissions and a database/evidence restoration drill.
 
-1. Connect repository to Vercel/Netlify
-2. Configure build command: `npm run build`
-3. Configure output directory: `.next`
-4. Set environment variables
-5. Deploy automatically on push
+Readiness checks database/schema/maintenance conditions. It does not certify email delivery, scanner-definition currency or backup recoverability.
 
-### 4. Environment Variables
+## Release and recovery
 
-#### Backend Environment Variables
+The existing GitHub source branch is `master`; use the remote branch actually reviewed and tested. If the academic/release process requires `main`, create and review that release source explicitly and configure hosting accordingly; do not assume a branch rename or automatic deployment has occurred.
 
-```bash
-# Connection String
-ConnectionStrings__DefaultConnection=Host=your-db-host;Database=welfare_system_prod;...
+Record a final commit or tag, test completed changes before publishing, and verify the running build matches that identifier. Local startup is manual; no automatic hosting integration is configured by these instructions.
 
-# JWT Configuration
-Jwt__SecretKey=your-secure-secret-key
-Jwt__Issuer=WelfareSystem
-Jwt__Audience=WelfareSystemUsers
-Jwt__ExpirationMinutes=60
+Retain a previously verified build/configuration and coordinated database/evidence backup. Restore only through an approved recovery procedure with integrity and access checks. Never point an isolated restore test at the live source database. The provided scripts create a uniquely named test database and can remove only that test target.
 
-# ASP.NET Core
-ASPNETCORE_ENVIRONMENT=Production
-ASPNETCORE_URLS=https://your-domain.com
-```
-
-#### Frontend Environment Variables
-
-```bash
-NEXT_PUBLIC_API_URL=https://your-domain.com/api
-```
-
-### 5. Database Migration
-
-Run migrations on production database:
-
-```bash
-dotnet ef database update --connection "YourProductionConnectionString"
-```
-
-### 6. SSL/TLS Configuration
-
-#### Self-Signed Certificate (Development Only)
-
-```bash
-dotnet dev-certs https -ep $HOME/.aspnet/https/aspnetapp.pfx -p YourPassword123
-```
-
-#### Production Certificate
-
-- Obtain SSL certificate from Let's Encrypt (free) or commercial CA
-- Configure web server to use certificate
-- Enforce HTTPS redirect
-- Set appropriate security headers
-
-### 7. Security Hardening
-
-#### Web Server Security
-
-- Enable HSTS (HTTP Strict Transport Security)
-- Configure security headers
-- Disable unnecessary HTTP methods
-- Implement rate limiting
-- Enable request size limits
-
-#### Application Security
-
-- Ensure JWT secret is strong
-- Enable CORS only for trusted origins
-- Implement rate limiting on auth endpoints
-- Enable request logging
-- Monitor for suspicious activity
-
-### 8. Monitoring and Logging
-
-#### Application Logging
-
-Configure Serilog in `appsettings.Production.json`:
-
-```json
-{
-  "Serilog": {
-    "MinimumLevel": "Warning",
-    "WriteTo": [
-      {
-        "Name": "File",
-        "Args": {
-          "path": "/var/log/welfare-system/log-.txt",
-          "rollingInterval": "Day"
-        }
-      }
-    ]
-  }
-}
-```
-
-#### Health Checks
-
-Add health check endpoint in `Program.cs`:
-
-```csharp
-builder.Services.AddHealthChecks();
-app.MapHealthChecks("/health");
-```
-
-### 9. Backup Strategy
-
-#### Database Backups
-
-```bash
-# Daily backup
-pg_dump welfare_system_prod > backup_$(date +%Y%m%d).sql
-
-# Automated with cron job
-0 2 * * * pg_dump welfare_system_prod > /backups/daily/backup_$(date +\%Y\%m\%d).sql
-```
-
-#### Application Backups
-
-- Backup compiled application code
-- Backup configuration files (separately)
-- Keep version control of all code
-
-### 10. Post-Deployment Checklist
-
-- [ ] Database connection successful
-- [ ] All migrations applied
-- [ ] SSL certificate valid
-- [ ] HTTPS enforced
-- [ ] CORS configured correctly
-- [ ] Seed data (if needed)
-- [ ] Test login functionality
-- [ ] Test application submission
-- [ ] Test all user roles
-- [ ] Verify notifications working
-- [ ] Check dashboard functionality
-- [ ] Test file uploads
-- [ ] Monitor error logs
-- [ ] Verify backup strategy
-
-## Troubleshooting
-
-### Common Issues
-
-**Database Connection Failed:**
-- Check connection string
-- Verify database server is running
-- Check firewall rules
-- Verify user permissions
-
-**CORS Errors:**
-- Check CORS configuration in Program.cs
-- Verify frontend URL is allowed
-- Check preflight requests
-
-**JWT Token Issues:**
-- Verify secret key matches
-- Check token expiration
-- Verify issuer/audience match
-
-**File Upload Fails:**
-- Check file size limits
-- Verify upload directory permissions
-- Check storage space
-
-## Maintenance
-
-### Regular Tasks
-
-- **Daily:** Monitor error logs, check database backups
-- **Weekly:** Review security logs, check disk space
-- **Monthly:** Update dependencies, review performance metrics
-- **Quarterly:** Security audit, backup restore test
-
-### Updates
-
-1. Update dependencies in `csproj` and `package.json`
-2. Test thoroughly in staging environment
-3. Create database backup before migrations
-4. Deploy during low-traffic hours
-5. Monitor for issues after deployment
-
-## Rollback Procedure
-
-If deployment fails:
-
-1. Revert to previous application version
-2. Restore database from backup if schema changed
-3. Verify system functionality
-4. Investigate failure cause
-5. Fix and re-deploy
-
-## Support
-
-For deployment issues:
-- Check application logs
-- Review database logs
-- Consult this guide
-- Check official .NET and Next.js documentation
+OAuth pending-flow state and maintenance coordination currently target one API instance. Shared atomic state, shared private files and suitable maintenance coordination are prerequisites for multiple replicas.

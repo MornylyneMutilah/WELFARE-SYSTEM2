@@ -1,0 +1,151 @@
+Operation,Iteration,Milliseconds,Success,HTTPStatus
+Login,1,293.0306,true,200
+Login,2,290.4968,true,200
+Login,3,297.0158,true,200
+Login,4,310.9344,true,200
+Login,5,300.0118,true,200
+Login,6,285.0624,true,200
+Login,7,288.2610,true,200
+Login,8,293.1415,true,200
+Login,9,294.0901,true,200
+Login,10,286.9184,true,200
+Login,11,294.4753,true,200
+Login,12,285.7787,true,200
+Login,13,284.7973,true,200
+Login,14,284.9104,true,200
+Login,15,287.1526,true,200
+Login,16,288.2820,true,200
+Login,17,310.0143,true,200
+Login,18,281.3419,true,200
+Login,19,283.6350,true,200
+Login,20,285.8902,true,200
+Login,21,309.1809,true,200
+Login,22,299.2537,true,200
+Login,23,307.6547,true,200
+Login,24,282.1921,true,200
+Login,25,280.0262,true,200
+Login,26,299.7040,true,200
+Login,27,286.5019,true,200
+Login,28,290.3648,true,200
+Login,29,286.0172,true,200
+Login,30,303.1833,true,200
+Application Submission,1,28.1193,true,200
+Application Submission,2,28.4812,true,200
+Application Submission,3,32.6636,true,200
+Application Submission,4,26.9710,true,200
+Application Submission,5,30.5926,true,200
+Application Submission,6,40.1648,true,200
+Application Submission,7,36.3300,true,200
+Application Submission,8,35.1264,true,200
+Application Submission,9,30.9369,true,200
+Application Submission,10,37.5721,true,200
+Application Submission,11,35.1437,true,200
+Application Submission,12,34.9529,true,200
+Application Submission,13,33.3065,true,200
+Application Submission,14,32.2992,true,200
+Application Submission,15,36.0593,true,200
+Application Submission,16,44.5937,true,200
+Application Submission,17,25.8386,true,200
+Application Submission,18,27.9966,true,200
+Application Submission,19,30.2520,true,200
+Application Submission,20,27.3315,true,200
+Application Submission,21,27.3345,true,200
+Application Submission,22,27.6278,true,200
+Application Submission,23,27.5220,true,200
+Application Submission,24,27.1476,true,200
+Application Submission,25,26.9349,true,200
+Application Submission,26,25.6002,true,200
+Application Submission,27,31.4902,true,200
+Application Submission,28,28.8980,true,200
+Application Submission,29,27.4126,true,200
+Application Submission,30,30.6014,true,200
+Application Retrieval,1,5.5459,true,200
+Application Retrieval,2,4.5000,true,200
+Application Retrieval,3,4.0997,true,200
+Application Retrieval,4,4.0512,true,200
+Application Retrieval,5,5.9953,true,200
+Application Retrieval,6,5.2265,true,200
+Application Retrieval,7,4.4339,true,200
+Application Retrieval,8,4.2454,true,200
+Application Retrieval,9,4.0729,true,200
+Application Retrieval,10,3.8386,true,200
+Application Retrieval,11,3.6962,true,200
+Application Retrieval,12,3.7583,true,200
+Application Retrieval,13,3.9544,true,200
+Application Retrieval,14,4.9130,true,200
+Application Retrieval,15,4.1876,true,200
+Application Retrieval,16,4.1889,true,200
+Application Retrieval,17,4.6444,true,200
+Application Retrieval,18,5.4537,true,200
+Application Retrieval,19,4.3336,true,200
+Application Retrieval,20,3.8063,true,200
+Application Retrieval,21,5.0060,true,200
+Application Retrieval,22,4.0718,true,200
+Application Retrieval,23,4.0612,true,200
+Application Retrieval,24,3.8313,true,200
+Application Retrieval,25,4.1645,true,200
+Application Retrieval,26,3.8083,true,200
+Application Retrieval,27,3.7738,true,200
+Application Retrieval,28,3.6342,true,200
+Application Retrieval,29,5.0269,true,200
+Application Retrieval,30,4.6393,true,200
+Report Generation,1,6.1435,true,200
+Report Generation,2,6.2508,true,200
+Report Generation,3,6.0731,true,200
+Report Generation,4,5.2990,true,200
+Report Generation,5,4.8390,true,200
+Report Generation,6,5.1532,true,200
+Report Generation,7,6.8973,true,200
+Report Generation,8,5.3787,true,200
+Report Generation,9,5.1778,true,200
+Report Generation,10,5.1010,true,200
+Report Generation,11,4.9702,true,200
+Report Generation,12,8.6104,true,200
+Report Generation,13,7.8948,true,200
+Report Generation,14,5.7469,true,200
+Report Generation,15,5.3269,true,200
+Report Generation,16,5.1006,true,200
+Report Generation,17,5.0206,true,200
+Report Generation,18,5.7597,true,200
+Report Generation,19,5.4672,true,200
+Report Generation,20,5.1824,true,200
+Report Generation,21,5.2690,true,200
+Report Generation,22,5.0720,true,200
+Report Generation,23,4.9434,true,200
+Report Generation,24,5.4735,true,200
+Report Generation,25,5.9093,true,200
+Report Generation,26,5.0035,true,200
+Report Generation,27,5.1578,true,200
+Report Generation,28,5.6961,true,200
+Report Generation,29,5.6433,true,200
+Report Generation,30,5.8649,true,200
+Dashboard Loading,1,232.5397,true,200
+Dashboard Loading,2,231.9494,true,200
+Dashboard Loading,3,249.6405,true,200
+Dashboard Loading,4,231.7159,true,200
+Dashboard Loading,5,199.5349,true,200
+Dashboard Loading,6,233.9077,true,200
+Dashboard Loading,7,197.4335,true,200
+Dashboard Loading,8,149.0166,true,200
+Dashboard Loading,9,165.5150,true,200
+Dashboard Loading,10,183.0064,true,200
+Dashboard Loading,11,198.9283,true,200
+Dashboard Loading,12,231.7942,true,200
+Dashboard Loading,13,217.5029,true,200
+Dashboard Loading,14,232.8331,true,200
+Dashboard Loading,15,229.6551,true,200
+Dashboard Loading,16,182.5570,true,200
+Dashboard Loading,17,199.1801,true,200
+Dashboard Loading,18,215.4656,true,200
+Dashboard Loading,19,148.9818,true,200
+Dashboard Loading,20,131.9801,true,200
+Dashboard Loading,21,149.9145,true,200
+Dashboard Loading,22,168.5491,true,200
+Dashboard Loading,23,163.3850,true,200
+Dashboard Loading,24,132.2874,true,200
+Dashboard Loading,25,148.9100,true,200
+Dashboard Loading,26,149.2661,true,200
+Dashboard Loading,27,165.7246,true,200
+Dashboard Loading,28,165.7907,true,200
+Dashboard Loading,29,132.1082,true,200
+Dashboard Loading,30,150.0129,true,200

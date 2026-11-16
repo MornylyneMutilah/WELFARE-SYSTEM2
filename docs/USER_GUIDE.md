@@ -1,360 +1,52 @@
-# Welfare Management System User Guide
-
-## Overview
+# User guide
 
-The Welfare Management System is a web-based platform that allows university employees to submit welfare applications and enables authorized personnel to review, approve, and manage these applications efficiently.
-
-## Getting Started
-
-### First-Time Login
-
-1. Navigate to the system URL (e.g., `https://welfare.university.edu`)
-2. Click "Register" to create a new account
-3. Fill in your details:
-   - Email (university email)
-   - Password (must include uppercase, lowercase, number, and special character)
-   - First and Last Name
-   - Employee ID
-   - Department
-4. Click "Register"
-5. You will be automatically logged in
-
-### Login
-
-1. Click "Login" on the homepage
-2. Enter your email and password
-3. Click "Login"
-
-### Forgot Password
-
-If you forget your password, contact your HR department or system administrator to reset it.
-
-## Employee Guide
-
-### Viewing Available Programs
-
-1. Click "Programs" in the navigation menu
-2. Browse available welfare programs
-3. View program details including:
-   - Description
-   - Maximum amount
-   - Required service period
-   - Required documents
-
-### Checking Eligibility
-
-Before submitting an application, you can check your eligibility:
-
-1. Click "Programs"
-2. Select a program
-3. Click "Check Eligibility"
-4. The system will show:
-   - Service period status
-   - Amount limit check
-   - Application frequency check
-   - Any warnings or issues
-
-### Submitting an Application
-
-1. Click "Applications" in the navigation menu
-2. Click "New Application"
-3. Fill in the application form:
-   - Select welfare program
-   - Enter requested amount
-   - Provide reason for application
-4. Click "Save Draft" to save without submitting
-5. Click "Submit" when ready to submit for review
-6. You will receive a notification when the application is submitted
-
-### Tracking Your Applications
-
-1. Click "Applications" in the navigation menu
-2. View all your applications with their current status:
-   - **Draft** - Not yet submitted
-   - **Submitted** - Waiting for HR review
-   - **Under HR Review** - HR is reviewing
-   - **Under Committee Review** - Committee is reviewing
-   - **Pending Management Approval** - Waiting for final approval
-   - **Approved** - Application approved
-   - **Rejected** - Application rejected
-3. Click on an application to view details
-
-### Viewing Notifications
-
-1. Click the bell icon in the top right corner
-2. View your notifications:
-   - Application submission confirmations
-   - Status updates
-   - Approval/rejection notifications
-   - Additional information requests
-3. Click on a notification to view details
-4. Mark notifications as read by clicking them
-
-### Updating Your Profile
-
-1. Click "Profile" in the navigation menu
-2. View and update your personal information
-3. Click "Save" to update
-
-## HR Officer Guide
-
-### Dashboard Overview
-
-1. Login as HR Officer
-2. View your dashboard showing:
-   - Total applications
-   - Pending reviews
-   - Approved/rejected counts
-   - Flagged applications
-   - Unread notifications
-
-### Reviewing Applications
-
-1. Click "Applications" to view all applications
-2. Filter by status (Submitted, Under HR Review)
-3. Click on an application to review
-4. Review the application details:
-   - Employee information
-   - Program details
-   - Requested amount and reason
-   - Eligibility check results
-   - Anomaly flags (if any)
-5. Click "Add Review"
-6. Provide your recommendation:
-   - **Approve** - Recommend for committee review
-   - **Reject** - Reject application
-   - **Request Info** - Request additional information
-7. Add comments explaining your decision
-8. Click "Submit Review"
-
-### Managing Eligibility Rules
-
-1. Navigate to "Eligibility Rules" (if authorized)
-2. View existing rules for each program
-3. Create or modify rules as needed
-4. Save changes
-
-## Committee Member Guide
-
-### Dashboard Overview
-
-1. Login as Committee Member
-2. View your dashboard showing:
-   - Total applications
-   - Pending committee reviews
-   - Committee approval/rejection statistics
-   - Unread notifications
-
-### Reviewing Applications
-
-1. Click "Applications" to view applications
-2. Filter by status (Under Committee Review)
-3. Click on an application to review
-4. Review:
-   - Employee information
-   - HR recommendation and comments
-   - Application details
-   - Any additional information provided
-5. Click "Add Review"
-6. Provide your recommendation:
-   - **Approve** - Recommend for management approval
-   - **Reject** - Reject application
-7. Add comments explaining your decision
-8. Click "Submit Review"
-
-## Management Guide
-
-### Dashboard Overview
-
-1. Login as Management
-2. View your dashboard showing:
-   - Total applications
-   - Pending approvals
-   - Management approval/rejection statistics
-   - Total expenditure
-   - Average processing time
-   - Unread notifications
-
-### Final Approval Decisions
-
-1. Click "Applications" to view applications
-2. Filter by status (Pending Management Approval)
-3. Click on an application to review
-4. Review:
-   - Complete application history
-   - HR and Committee recommendations
-   - Application details and documents
-5. Click "Approve" or "Reject"
-6. Add comments if rejecting
-7. Click "Submit"
-
-### Viewing Reports
-
-1. Click "Reports" in the navigation menu
-2. Select a report type:
-   - Applications by Status
-   - Applications by Department
-   - Applications by Program
-   - Expenditure Report
-   - Processing Time Report
-   - Flagged Applications Report
-3. Set date range if needed
-4. Click "Generate Report"
-5. View report data and charts
-6. Export to CSV if needed
-
-## Administrator Guide
-
-### Dashboard Overview
-
-1. Login as Administrator
-2. View system-wide dashboard showing:
-   - Total users
-   - Total applications
-   - Total and active programs
-   - Total expenditure
-   - Pending and flagged applications
-   - Department statistics
-
-### User Management
-
-1. Click "Users" in the navigation menu
-2. View all users
-3. Add new users:
-   - Click "Add User"
-   - Fill in user details
-   - Assign role and department
-   - Click "Save"
-4. Edit existing users
-5. Deactivate accounts if needed
-
-### Department Management
-
-1. Click "Departments" in the navigation menu
-2. View all departments
-3. Add new departments
-4. Edit department details
-
-### Program Management
-
-1. Click "Programs" in the navigation menu
-2. View all welfare programs
-3. Add new programs:
-   - Program name and description
-   - Category
-   - Maximum amount
-   - Minimum service period
-   - Required documents
-4. Edit existing programs
-5. Activate/deactivate programs
-
-### System Configuration
-
-1. Access system settings
-2. Configure system-wide parameters
-3. View system logs
-4. Monitor system health
-
-## Common Workflows
-
-### Application Submission Workflow
-
-1. **Employee** submits application
-2. **System** runs eligibility check and anomaly detection
-3. **HR Officer** reviews and recommends
-4. **Committee Member** reviews and recommends
-5. **Management** makes final decision
-6. **Employee** receives notification of decision
-
-### Additional Information Request
-
-1. HR/Committee requests additional info
-2. Employee receives notification
-3. Employee updates application or provides documents
-4. Reviewer resumes review
-
-### Re-Application Process
-
-1. If application is rejected, employee can:
-   - Submit new application with corrections
-   - Wait for cooling period (6 months for same program)
-   - Apply for different program
-
-## Best Practices
-
-### For Employees
-
-- Check eligibility before submitting
-- Provide accurate and complete information
-- Upload all required documents
-- Respond promptly to information requests
-- Keep your profile information updated
-
-### For Reviewers
-
-- Review applications promptly
-- Provide clear and constructive feedback
-- Document decisions thoroughly
-- Check anomaly flags for high-risk applications
-- Follow approval criteria consistently
-
-### For Management
-
-- Review expenditure reports regularly
-- Monitor application trends
-- Review flagged applications
-- Approve or reject based on criteria
-- Provide feedback to HR/Committee
-
-## Troubleshooting
-
-### Common Issues
-
-**Cannot Submit Application:**
-- Check if you meet service period requirement
-- Verify requested amount is within program limit
-- Ensure you haven't exceeded application frequency
-
-**Application Not Showing:**
-- Check your status filter
-- Verify you're logged in with correct account
-- Refresh the page
-
-**No Notifications:**
-- Check notification settings
-- Ensure browser allows notifications
-- Refresh the page
-
-**Cannot Access Certain Pages:**
-- Verify your role has the required permissions
-- Contact administrator if you need access
-
-### Getting Help
-
-If you encounter issues:
-1. Check this user guide
-2. Contact your HR department
-3. Contact system administrator
-4. Report bugs through the support channel
-
-## Security Tips
-
-- Protect your password
-- Don't share your login credentials
-- Log out when using shared computers
-- Report suspicious activity
-- Keep your profile information updated
-- Be cautious with document uploads
-
-## Glossary
-
-- **Draft** - Application saved but not submitted
-- **Submitted** - Application submitted for review
-- **HR Review** - Application being reviewed by HR
-- **Committee Review** - Application being reviewed by Welfare Committee
-- **Management Approval** - Final approval by institutional management
-- **Approved** - Application approved and payment processed
-- **Rejected** - Application denied
-- **Eligibility Check** - Automatic validation of application eligibility
-- **Anomaly Flags** - Warnings about potential issues with application
-- **Service Period** - Length of employment at the institution
+Open `http://localhost:3000/login` in the local setup. Sign in to the required role. Email registration uses personal/account details, account-type explanation and a final review/confirmation; selecting an organizational role is a request, not self-assigned authority.
+
+## Using more than one role
+
+Administrator and Employee can sign in in separate tabs. Each tab keeps its own session through refresh; logging out of one does not replace the other's credentials. A new tab can require sign-in and closing the tab normally ends its session. After upgrading from the older shared-session implementation, hard-refresh old tabs and sign in to each intended role once.
+
+## Employee: prepare and submit
+
+1. Browse active programs and read amount limits, minimum service, instructions and required evidence.
+2. Create a draft with the requested amount and reason. Open its application workspace.
+3. Upload a real supported file for each named requirement. Additional evidence does not substitute for a required category. Wait for the success message, then choose the next file; the picker remains available after successful uploads and blocked submissions.
+4. Read **Current eligibility checks**. Use **Refresh checks** after an administrator changes policy; the page also refreshes on focus and within ten seconds while visible. **Previous recorded assessment (historical)** describes an earlier check and is not the current policy result.
+5. Resolve mandatory failures: inactive account/program, required initial password change, unverified employment, insufficient completed service, over-limit amount or missing evidence. Administrator verification must use genuine employment information.
+6. Review details/evidence, tick the confirmation and submit once. Success appears only after the backend confirms submission. The application and evidence then become locked for review.
+7. Track status, notifications and the recorded review/decision timeline. Authorized printable views support browser Print / Save as PDF.
+
+Example: a 3,000 draft is blocked under a 2,000 maximum. If an Administrator saves 5,000 for the same program, refresh the current checks; the amount concern clears without recreating the draft. Other mandatory conditions still apply. Old failed assessments remain in history.
+
+## HR, committee and management
+
+- HR opens its departmental review queue and records permitted recommendations/decisions with notes.
+- Committee members review HR-forwarded cases and endorse or reject them. Endorsement forwards to management; it is not final approval.
+- Management records a permitted final decision. Stage skipping, self-review, cross-department HR access and duplicate decisions are blocked.
+- The **Decision register** retains completed work after it leaves the pending queue. Search and combine supported stage, outcome, scope and date filters; open a confirmation or export matching CSV results.
+- Independent appeals and addenda retain original decisions. An accepted appeal creates a linked reconsideration draft, which follows the normal process again.
+
+## Administrator
+
+**Users:** create and maintain accounts, roles/departments, verified employment dates and active status. Use reasons/confirmation. Suspend without deleting history, reactivate for a fresh sign-in, and use setup invitations where applicable.
+
+**Programs:** create, edit, deactivate/reactivate and configure program limits, service months and required categories. Supply a reason and confirm the reviewed change. A conflict means another change occurred; refresh and reopen rather than overwriting it.
+
+**Audit:** fields filter existing read-only events. For a program-edit demonstration use `ProgramUpdated` in **Exact action** and `WelfareProgram` in **Exact entity type**. **Actor user ID** takes a numeric ID, not a name; dates are UTC. Blank filters include all permitted dates/actors. Expand **Recorded details** for the retained change.
+
+**Detection controls:** adjust supported thresholds and record a reason. Anomaly flags support investigation and do not automatically prove misconduct.
+
+**Budgets:** propose annual allocations. Management independently approves/rejects them. Displayed approved commitments are not payments.
+
+**Readiness:** inspect actual schema/configuration/account checks. Some overview dashboard service labels remain static; do not treat them as live monitoring.
+
+## Recovery and common errors
+
+- Use **Forgot your password?** or Account security for supported recovery/verification. Without SMTP, development messages are in the private API outbox rather than a real inbox.
+- `401`: sign in again when the session is expired/revoked.
+- `403`: the tab's account cannot perform the action, or an initial password must be replaced. Program editing requires Administrator access.
+- `409`: refresh a stale edit/decision and inspect current state.
+- A missing-evidence or over-limit message preserves the draft. Read **Current eligibility checks** before relying on an old historical result.
+- Wait for uploads to finish before final submission. A rejected file can be corrected and uploaded again; successful uploads do not disable the picker permanently.
+
+For operators, scanners, mail, private files and recovery drills, see the [operating guide](OPERATING_GUIDE.md).

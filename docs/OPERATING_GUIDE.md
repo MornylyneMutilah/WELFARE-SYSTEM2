@@ -1,6 +1,12 @@
 # Welfare system operating guide
 
-Verified local implementation: 3 November 2026. Social-provider activation is deliberately excluded. Financial scope is budgets and approved application commitments only; there are no payment records or bank transfers.
+Maintained local implementation: 17 November 2026. Google and GitHub use private local configuration; complete live linking/sign-in remains to be verified. X is hidden from the interface. Financial scope is budgets and approved application commitments only; there are no payment records or bank transfers.
+
+## Tab sessions and live draft checks
+
+Authentication is isolated per tab using session storage. Signing in or out of Employee does not replace an Administrator tab's credentials; refresh preserves the current tab. Browser data-change signals remain shared, while API permissions still come from current server-verified roles.
+
+Drafts show Current eligibility checks and a Refresh checks action. Current programs/previews refresh on focus, relevant events and ten-second polling. Raising a limit clears a stale amount failure without recreating the draft. Previous recorded assessments remain historical, and final submission rechecks mandatory conditions independently.
 
 ## Employment verification and mandatory submission requirements
 
@@ -134,7 +140,7 @@ Applied additive migrations:
 
 They add security flags/challenges, document metadata, budgets, amendment records and detection settings. Existing records are preserved; employment verification, email ownership, malware scans and historic decisions are not fabricated.
 
-The final local regression runner passes **261 checks**, rolls back fixture records and removes its temporary evidence directories. It covers existing authentication/authorization, mandatory eligibility, evidence, immutable decisions, accounts, budgets, appeals, scanner protocol, maintenance and model fixtures. Frontend lint/build and backend compilation pass. Live role checks confirm budget/readiness/detection restrictions, and the dashboard topic/depth controls were checked in the browser. These checks are not a full penetration test or proof of production readiness.
+The final local regression runner passes **279 checks**, rolls back fixture records and removes its temporary evidence directories. It covers existing authentication/authorization, mandatory eligibility, evidence, immutable decisions, accounts, budgets, appeals, scanner protocol, maintenance and model fixtures. Frontend lint/build and backend compilation pass. Live role checks confirm budget/readiness/detection restrictions, and the dashboard topic/depth controls were checked in the browser. These checks are not a full penetration test or proof of production readiness.
 
 ### First operator actions
 
@@ -144,4 +150,4 @@ The final local regression runner passes **261 checks**, rolls back fixture reco
 4. Choose production origins/certificates/secrets and replace demonstration credentials before hosting.
 5. Evaluate representative institutional history before enabling the experimental model.
 
-Social sign-in activation remains deliberately excluded.
+See [social sign-in](SOCIAL_SIGN_IN.md) for exact callbacks and private configuration. Unconfigured providers remain disabled; configured credentials alone do not establish successful linking/sign-in.

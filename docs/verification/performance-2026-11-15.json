@@ -1,0 +1,75 @@
+{
+  "testedAtUtc": "2026-11-15T11:10:26.929Z",
+  "iterations": 30,
+  "warmups": 3,
+  "concurrentUsers": 1,
+  "rows": [
+    {
+      "operation": "Login",
+      "tests": 30,
+      "successes": 30,
+      "failures": 0,
+      "averageMs": 292.31064333333325,
+      "maximumMs": 310.9344000000001,
+      "minimumMs": 280.02620000000024,
+      "result": "30/30 successful"
+    },
+    {
+      "operation": "Application Submission",
+      "tests": 30,
+      "successes": 30,
+      "failures": 0,
+      "averageMs": 31.176703333333112,
+      "maximumMs": 44.59370000000126,
+      "minimumMs": 25.60020000000077,
+      "result": "30/30 successful"
+    },
+    {
+      "operation": "Application Retrieval",
+      "tests": 30,
+      "successes": 30,
+      "failures": 0,
+      "averageMs": 4.365436666666635,
+      "maximumMs": 5.995299999998679,
+      "minimumMs": 3.634200000000419,
+      "result": "30/30 successful"
+    },
+    {
+      "operation": "Dashboard Loading",
+      "tests": 30,
+      "successes": 30,
+      "failures": 0,
+      "averageMs": 186.30287666666675,
+      "maximumMs": 249.64050000000134,
+      "minimumMs": 131.98010000000068,
+      "result": "30/30 successful"
+    },
+    {
+      "operation": "Report Generation",
+      "tests": 30,
+      "successes": 30,
+      "failures": 0,
+      "averageMs": 5.647530000000006,
+      "maximumMs": 8.610399999999572,
+      "minimumMs": 4.838999999999942,
+      "result": "30/30 successful"
+    }
+  ],
+  "methodology": {
+    "api": "Client-observed loopback HTTP time through full response body, persistent Node fetch connections, no retries, sequential warm runs.",
+    "dashboard": "Chromium navigation to employee dashboard until application, stats and anomaly responses finish and program/statistics render; existing session and warm browser cache. Excludes human interaction and decorative animation duration.",
+    "submission": "Final submit endpoint only; distinct pre-created drafts with one actual PDF evidence file each, upload/preparation outside timed interval.",
+    "report": "Administrator applications CSV export, complete bytes received; includes server export audit write.",
+    "environment": "Release API binary in Development environment; Next.js production server. Isolated snapshot of local PostgreSQL database. Not a load/stress/cold-start benchmark."
+  },
+  "baseline": {
+    "users": 18,
+    "applications": 7,
+    "reviews": 3,
+    "programs": 6,
+    "documents": 3
+  },
+  "browser": "157.0.8103.51",
+  "sourceRevision": "Dated uncommitted local working copy based on c750306; predates subsequent tab-session and live-eligibility fixes.",
+  "frameworkAtMeasurement": "Next.js 16.4.3; predates the current 16.4.6 security patch."
+}

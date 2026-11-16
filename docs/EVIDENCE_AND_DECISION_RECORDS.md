@@ -1,18 +1,20 @@
 # Evidence, eligibility, decision records and reports
 
-Implemented on 2 November 2026. This extends the existing workflow; it does not change HR → Committee → Management stage ordering.
+Maintained on 17 November 2026. This extends the existing workflow; it does not change HR → Committee → Management stage ordering.
 
 ## Employee application workspace
 
 Open **Applications → an application ID / View timeline**. Newly created drafts also offer **Add documents and review draft**.
 
 - Edit the requested amount and reason while the application is a draft.
-- Read the recorded eligibility results, upload supporting evidence, and review the timeline.
+- Read Current eligibility checks, upload supporting evidence, and review the timeline. Refresh checks uses current rules without rewriting Previous recorded assessment (historical).
 - Confirm the application details and evidence before submitting. The server rechecks eligibility using current employment and program data.
 - After submission, application details and supporting documents are locked against replacement or removal.
 - Track submission and each review stage, reviewer, date, notes, and decision references. Authorized users can print the application and individual decision confirmations using the browser's Print / Save as PDF action.
 
 Old uploads that previously recorded metadata without saving file contents are explicitly marked unavailable. Their missing bytes cannot be recovered by this change. Draft owners can remove such metadata and supply the original file again. Submitted legacy documents remain recorded; there is no unaudited replacement bypass.
+
+After an upload succeeds, its picker resets and remains available for the next file. Blocked uploads/submissions scroll and focus their feedback; a blocked submission preserves the draft and remaining required uploads.
 
 ## Private document storage
 

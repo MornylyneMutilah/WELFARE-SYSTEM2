@@ -1,6 +1,6 @@
 # Social sign-in configuration
 
-Google, GitHub, and X use official authorization-code flows with S256 PKCE. Google additionally validates the signed ID token, issuer, audience, expiration, authorized party, and nonce. No provider credentials are included in the repository. Unconfigured providers stay disabled.
+The visible integrations are Google and GitHub, using official authorization-code flows with S256 PKCE. X is hidden from the frontend; inherited backend support remains but is not an offered sign-in option. Google additionally validates the signed ID token, issuer, audience, expiration, authorized party, and nonce. No provider credentials are included in the repository. Unconfigured providers stay disabled.
 
 ## Account linking
 
@@ -9,7 +9,7 @@ Google, GitHub, and X use official authorization-code flows with S256 PKCE. Goog
 3. Choose a configured provider, confirm your current account password and consent, then authorize with the provider.
 4. After the provider returns successfully, sign-in buttons can access that linked account.
 
-This deliberately does not provision employees or link accounts by a matching email address. Provider subject IDs identify explicit links, including X accounts without email addresses. Roles, department access, suspension, and session revocation continue to come from the welfare database. An identity already linked to another account cannot be reassigned through this flow.
+This deliberately does not provision employees or link accounts by a matching email address. Provider subject IDs identify explicit links, without automatically linking by an unverified email address. Roles, department access, suspension, and session revocation continue to come from the welfare database. An identity already linked to another account cannot be reassigned through this flow.
 
 ## Register provider applications
 
@@ -17,7 +17,6 @@ You must own developer applications and obtain real client IDs and secrets. Thes
 
 - **Google:** create a Web application OAuth client and configure the consent screen/test users. Register `http://localhost:5249/api/auth/external/google/callback` as the authorized redirect URI. Scopes: `openid email profile`. See [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
 - **GitHub:** register an OAuth App with homepage `http://localhost:3000` and callback `http://localhost:5249/api/auth/external/github/callback`. Scopes: `read:user user:email`. See [GitHub authorization](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps).
-- **X:** enable OAuth 2.0 for a confidential web application and register `http://localhost:5249/api/auth/external/x/callback`. Use the OAuth 2.0 client ID/secret, not OAuth 1.0 API keys. Scopes: `users.read tweet.read`. Provider access plans and redirect restrictions apply. See [X authorization-code flow](https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code).
 
 If a provider requires HTTPS, use an HTTPS development deployment and change both the registered callback and backend origin. Never use a frontend page as the provider callback.
 
@@ -31,13 +30,12 @@ Merge this structure into the **ignored** `backend/WelfareSystem.Api/appsettings
   "Authentication": {
     "BackendBaseUrl": "http://localhost:5249",
     "Google": { "ClientId": "", "ClientSecret": "", "CallbackUrl": "http://localhost:5249/api/auth/external/google/callback" },
-    "GitHub": { "ClientId": "", "ClientSecret": "", "CallbackUrl": "http://localhost:5249/api/auth/external/github/callback" },
-    "X": { "ClientId": "", "ClientSecret": "", "CallbackUrl": "http://localhost:5249/api/auth/external/x/callback" }
+    "GitHub": { "ClientId": "", "ClientSecret": "", "CallbackUrl": "http://localhost:5249/api/auth/external/github/callback" }
   }
 }
 ```
 
-Environment-variable equivalents are `Frontend__BaseUrl`, `Authentication__BackendBaseUrl`, and `Authentication__Google__ClientId`, `Authentication__Google__ClientSecret`, `Authentication__Google__CallbackUrl`; substitute `GitHub` or `X` for other providers. Keep all secrets on the API server. The frontend only needs `NEXT_PUBLIC_API_URL=http://localhost:5249/api`.
+Environment-variable equivalents are `Frontend__BaseUrl`, `Authentication__BackendBaseUrl`, and `Authentication__Google__ClientId`, `Authentication__Google__ClientSecret`, `Authentication__Google__CallbackUrl`; substitute `GitHub` for the other visible provider. Keep all secrets on the API server. The frontend only needs `NEXT_PUBLIC_API_URL=http://localhost:5249/api`.
 
 Restart the API after configuration. `GET /api/auth/external/providers` reports which providers have credentials and consistent callback settings. This configuration check cannot prove the credentials are valid: complete a real link and login for each provider before considering it operational.
 
@@ -52,10 +50,10 @@ Restart the API after configuration. `GET /api/auth/external/providers` reports 
 - Pending state/exchange storage is bounded and **in memory for one API instance**. Restarting invalidates pending flows. Multiple replicas require a shared atomic, expiring, single-use store before deployment.
 - OAuth endpoints are rate limited per connection IP. Review trusted reverse-proxy/forwarded-header configuration before deploying behind a proxy.
 
-No schema migration is introduced: the existing external-login table is reused. Automated tests simulate provider responses and separately validate real RSA-signed Google token fixtures. Real provider redirects, consent, cancellation, and account linking still require testing with your developer applications and credentials.
+No schema migration is introduced: the existing external-login table is reused. Automated tests simulate provider responses and separately validate real RSA-signed Google token fixtures. Local Google and GitHub authorization redirects were checked with private configuration. Complete live consent, cancellation, account linking and subsequent sign-in still require end-to-end verification.
 
 ## Administrator program management
 
 Open **Administrator → Programs → New program**. Supply the name, category, instructions, maximum amount, minimum service months, and document names (one per line). Enter a reason, review the summary, confirm, and create the program. Only a successful API response displays success.
 
-Administrators can also edit, deactivate, and reactivate programs. Changes are audited, stale edits and duplicate names are rejected, and employee listings refresh automatically. Deactivation retains application history and prevents submission of existing drafts into that inactive program. Submitted eligibility assessments are historical; drafts are reassessed on edit and submission using current rules. Document requirements remain instructions. Private uploads, authorized downloads, timelines, and decision records are described in [Evidence and decision records](EVIDENCE_AND_DECISION_RECORDS.md).
+Administrators can also edit, deactivate, and reactivate programs. Changes are audited, stale edits and duplicate names are rejected, and employee listings refresh automatically. Deactivation retains application history and prevents submission of existing drafts into that inactive program. Submitted eligibility assessments are historical; drafts also display a read-only live preview using current rules. Required categories are enforced against actual stored evidence at submission; reviewers still assess authenticity. Private uploads, authorized downloads, timelines, and decision records are described in [Evidence and decision records](EVIDENCE_AND_DECISION_RECORDS.md).
