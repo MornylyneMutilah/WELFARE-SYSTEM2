@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       try {
         const storedToken = tokenUtils.getToken();
-        const storedUser = localStorage.getItem('user');
+        const storedUser = tokenUtils.getUser();
         if (storedToken && storedUser) {
           const verified = await usersApi.getCurrentUser();
           if (!active) return;
@@ -59,11 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           setToken(storedToken);
           setUser(verifiedUser);
-          localStorage.setItem('user', JSON.stringify(verifiedUser));
+          tokenUtils.setUser(JSON.stringify(verifiedUser));
         }
       } catch {
         tokenUtils.clearAll();
-        localStorage.removeItem('user');
       } finally {
         if (active) setIsLoading(false);
       }
@@ -78,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       tokenUtils.setToken(response.token);
       tokenUtils.setRefreshToken(response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      tokenUtils.setUser(JSON.stringify(response.user));
       
       setToken(response.token);
       setUser(response.user);
@@ -93,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pendingWelcome.current = response.user.id;
     tokenUtils.setToken(response.token);
     tokenUtils.setRefreshToken(response.refreshToken);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    tokenUtils.setUser(JSON.stringify(response.user));
     setToken(response.token);
     setUser(response.user);
   }, []);
@@ -121,7 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     pendingWelcome.current = null;
     tokenUtils.clearAll();
-    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
@@ -138,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       tokenUtils.setToken(response.token);
       tokenUtils.setRefreshToken(response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      tokenUtils.setUser(JSON.stringify(response.user));
       
       setToken(response.token);
       setUser(response.user);

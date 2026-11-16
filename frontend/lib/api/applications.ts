@@ -28,6 +28,12 @@ export interface UpdateApplicationRequest {
   reason: string;
 }
 
+export interface EligibilityPreviewResponse {
+  ruleEvaluationResult: string;
+  canSubmit: boolean;
+  blockingIssues: string[];
+}
+
 export interface StatusUpdateRequest {
   status: number;
   comments: string;
@@ -51,6 +57,11 @@ export const applicationsApi = {
 
   createApplication: async (data: CreateApplicationRequest): Promise<ApplicationResponse> => {
     const response = await apiClient.post<ApplicationResponse>('/applications', data);
+    return response.data;
+  },
+
+  getEligibilityPreview: async (id: number): Promise<EligibilityPreviewResponse> => {
+    const response = await apiClient.get<EligibilityPreviewResponse>(`/applications/${id}/eligibility-preview`);
     return response.data;
   },
 

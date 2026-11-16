@@ -266,7 +266,17 @@ public class WelfareApplicationService : IWelfareApplicationService
         return true;
     }
 
-    private async Task Reassess(WelfareApplication application, string stage)
+    public async Task<EligibilityPreviewResponse?> GetCurrentEligibilityAsync(int id)
+    {
+        var application = await _context.WelfareApplications.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id && a.Status == 1);
+        if (application == null) return null;
+        var assessment = await BuildAssessment(application, "CurrentRulesPreview");
+        return new EligibilityPreviewResponse {
+            RuleEvaluationResult = assessment.Json, CanSubmit = assessment.Issues.Count == 0, BlockingIssues = assessment.Issues
+        };
+    }
+
+    private async Task<(RuleEngineResult Result, string Json, List<string> Issues)> BuildAssessment(WelfareApplication application, string stage)
     {
         var user = await _context.Users.AsNoTracking().FirstAsync(u => u.Id == application.UserId);
         var program = await _context.WelfarePrograms.AsNoTracking().FirstAsync(p => p.Id == application.WelfareProgramId);
@@ -280,13 +290,20 @@ public class WelfareApplicationService : IWelfareApplicationService
             Message = requirements.Count == 0 ? "Active account/program, verified employment, service, amount and required evidence checks passed." : string.Join(" ", requirements), Details = new() { ["Mandatory"] = true } });
         result.IsEligible = result.IsEligible && requirements.Count == 0;
         result.WarningMessages.AddRange(requirements);
-        application.IsEligible = result.IsEligible;
-        application.AnomalyFlags = JsonSerializer.Serialize(result.WarningMessages);
-        application.RuleEvaluationResult = JsonSerializer.Serialize(new {
+        var snapshot = JsonSerializer.Serialize(new {
             RuleEngine = result, AssessedAt = at, Stage = stage,
             Inputs = new { user.HireDate, user.IsActive, user.EmploymentVerifiedAt, application.RequestedAmount, ProgramId = program.Id, program.Name,
                 program.MaxAmount, program.MinServicePeriod, program.RequiredDocuments, ProgramUpdatedAt = program.UpdatedAt }
         });
+        return (result, snapshot, requirements);
+    }
+
+    private async Task Reassess(WelfareApplication application, string stage)
+    {
+        var assessment = await BuildAssessment(application, stage);
+        application.IsEligible = assessment.Result.IsEligible;
+        application.AnomalyFlags = JsonSerializer.Serialize(assessment.Result.WarningMessages);
+        application.RuleEvaluationResult = assessment.Json;
         _context.AuditLogs.Add(new AuditLog { UserId = application.UserId, Action = "EligibilityAssessed", EntityType = "WelfareApplication",
             EntityId = application.Id.ToString(), Details = application.RuleEvaluationResult });
     }

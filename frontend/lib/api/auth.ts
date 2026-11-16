@@ -56,7 +56,7 @@ export const authApi = {
 
   getExternalProviders: async (): Promise<ExternalProviderStatus[]> => {
     const response = await apiClient.get<ExternalProviderStatus[]>('/auth/external/providers');
-    return response.data;
+    return response.data.filter(item => item.provider.toLowerCase() !== 'x');
   },
   getExternalLinks: async (): Promise<ExternalLink[]> => (await apiClient.get<ExternalLink[]>('/auth/external/links')).data,
   linkExternal: async (provider: string, password: string): Promise<{ authorizationUrl: string }> =>

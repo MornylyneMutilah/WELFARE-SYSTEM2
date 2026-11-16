@@ -35,7 +35,10 @@ function ProgramEditor({ program, onSaved, onCancel }: { program?: WelfareProgra
       onSaved(`Program #${result.id} ${program ? 'updated' : 'created'}. ${result.isActive ? 'It is available in the employee program list.' : 'It is inactive; existing application records are retained.'}`);
     } catch (err: unknown) {
       const payload = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response?.data;
-      setError(payload?.message || (payload?.errors ? Object.values(payload.errors).flat().join(' ') : err instanceof Error ? err.message : 'Could not save the program. Your entries have been kept.'));
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setError(payload?.message || (status === 403
+        ? 'Saving programs requires an Administrator session in this tab. Sign in as Administrator and try again.'
+        : payload?.errors ? Object.values(payload.errors).flat().join(' ') : err instanceof Error ? err.message : 'Could not save the program. Your entries have been kept.'));
     } finally { setBusy(false); }
   };
   return <Card className="mb-6"><form onSubmit={save} aria-label={program ? 'Edit welfare program' : 'Create welfare program'} className="space-y-4">

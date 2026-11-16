@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { tokenUtils } from '../auth/tokenUtils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5249/api';
 
@@ -12,7 +13,7 @@ const apiClient = axios.create({
 // Request interceptor - add token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = tokenUtils.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,7 +24,6 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED') window.location.assign(new URL('/account/security', window.location.origin).href);
     return Promise.reject(error);
   }
 );
@@ -40,10 +40,11 @@ apiClient.interceptors.response.use(
   (error) => {
     const url = String(error.config?.url || '');
     const isCredentialAuth = url.startsWith('/auth/');
-    if (error.response?.status === 401 && !isCredentialAuth && localStorage.getItem('token')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+    if (error.response?.status === 403 && error.response?.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
+      window.location.assign(new URL('/account/security', window.location.origin).href);
+    }
+    if (error.response?.status === 401 && !isCredentialAuth && tokenUtils.getToken()) {
+      tokenUtils.clearAll();
       window.location.assign(new URL('/login', window.location.origin).href);
     }
     return Promise.reject(error);

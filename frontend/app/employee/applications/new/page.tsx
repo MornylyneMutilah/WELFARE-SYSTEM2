@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { welfareProgramsApi, type WelfareProgramResponse } from '@/lib/api/welfarePrograms';
+import { welfareProgramsApi } from '@/lib/api/welfarePrograms';
+import { useLiveData } from '@/lib/hooks/useLiveData';
 import { applicationsApi } from '@/lib/api/applications';
 import AppShell from '@/components/layout/AppShell';
 import Alert from '@/components/ui/Alert';
@@ -13,8 +14,9 @@ import { SelectField, TextAreaField, TextField } from '@/components/ui/Field';
 function NewApplicationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [programs, setPrograms] = useState<WelfareProgramResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const programsState = useLiveData(welfareProgramsApi.getActivePrograms);
+  const programs = programsState.data ?? [];
+  const isLoading = programsState.loading;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -29,24 +31,14 @@ function NewApplicationContent() {
     reason: '',
   });
 
-  useEffect(() => {
-    welfareProgramsApi
-      .getActivePrograms()
-      .then(setPrograms)
-      .catch(() => setError('Failed to load welfare programs'))
-      .finally(() => setIsLoading(false));
-  }, []);
-
   const selectedProgram = programs.find((p) => p.id === Number(formData.welfareProgramId));
+  const amountError = formData.requestedAmount <= 0 ? 'Enter a requested amount greater than zero.'
+    : selectedProgram && formData.requestedAmount > selectedProgram.maxAmount ? `Amount cannot exceed ${selectedProgram.maxAmount.toLocaleString()}.` : undefined;
 
   const validate = () => {
     const next: Record<string, string> = {};
-    if (!formData.welfareProgramId) next.welfareProgramId = 'Select a welfare program.';
-    if (!formData.requestedAmount || formData.requestedAmount <= 0) {
-      next.requestedAmount = 'Enter a requested amount greater than zero.';
-    } else if (selectedProgram && formData.requestedAmount > selectedProgram.maxAmount) {
-      next.requestedAmount = `Amount cannot exceed ${selectedProgram.maxAmount.toLocaleString()}.`;
-    }
+    if (!selectedProgram) next.welfareProgramId = 'Select an active welfare program.';
+    if (amountError) next.requestedAmount = amountError;
     if (!formData.reason.trim()) next.reason = 'Explain why you need this support.';
     setFieldErrors(next);
     return Object.keys(next).length === 0;
@@ -89,9 +81,9 @@ function NewApplicationContent() {
           </Button>
         </div>
       )}
-      {error && (
+      {(error || programsState.error) && (
         <div className="mb-6">
-          <Alert tone="error">{error}</Alert>
+          <Alert tone="error">{error || programsState.error}</Alert>
         </div>
       )}
 
@@ -167,7 +159,7 @@ function NewApplicationContent() {
             min="0.01"
             step="0.01"
             value={formData.requestedAmount || ''}
-            error={fieldErrors.requestedAmount}
+            error={fieldErrors.requestedAmount ? amountError : undefined}
             onChange={(e) => setFormData({ ...formData, requestedAmount: parseFloat(e.target.value) || 0 })}
             placeholder="0.00"
             hint="Enter the amount you are requesting (must not exceed program maximum)"

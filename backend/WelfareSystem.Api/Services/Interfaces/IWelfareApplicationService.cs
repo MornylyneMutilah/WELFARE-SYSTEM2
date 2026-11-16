@@ -5,6 +5,7 @@ namespace WelfareSystem.Api.Services.Interfaces;
 public interface IWelfareApplicationService
 {
     Task<ApplicationResponse?> GetApplicationByIdAsync(int id);
+    Task<EligibilityPreviewResponse?> GetCurrentEligibilityAsync(int id);
     Task<IEnumerable<ApplicationResponse>> GetApplicationsByUserIdAsync(int userId);
     Task<IEnumerable<ApplicationResponse>> GetAllApplicationsAsync();
     Task<ApplicationResponse?> CreateApplicationAsync(int userId, CreateApplicationRequest request);

@@ -31,7 +31,6 @@ export default function SocialAuthButtons({ isLoading = false }: SocialAuthButto
     : [
         { provider: 'Google', configured: false },
         { provider: 'GitHub', configured: false },
-        { provider: 'X', configured: false },
       ];
 
   return (

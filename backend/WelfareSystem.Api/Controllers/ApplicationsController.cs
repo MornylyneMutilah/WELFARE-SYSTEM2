@@ -80,6 +80,15 @@ public class ApplicationsController : ControllerBase
         return Ok(application);
     }
 
+    [HttpGet("{id}/eligibility-preview")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> GetEligibilityPreview(int id)
+    {
+        if (!await CanReadApplication(id)) return NotFound();
+        var preview = await _welfareApplicationService.GetCurrentEligibilityAsync(id);
+        return preview == null ? BadRequest(new { message = "Only drafts have a live eligibility preview. Submitted assessments are retained in the application history." }) : Ok(preview);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateApplication([FromBody] CreateApplicationRequest request)
     {

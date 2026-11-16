@@ -29,7 +29,7 @@ export const documentsApi = {
     formData.append('file', file);
     formData.append('requirement', requirement);
     
-    const response = await apiClient.post<DocumentResponse>(`/documents/application/${applicationId}`, formData);
+    const response = await apiClient.post<DocumentResponse>(`/documents/application/${applicationId}`, formData, { timeout: 120000 });
     return response.data;
   },
 

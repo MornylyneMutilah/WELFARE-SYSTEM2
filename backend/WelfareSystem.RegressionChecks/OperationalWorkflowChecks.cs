@@ -74,7 +74,15 @@ static class OperationalWorkflowChecks {
             check(await Docs(owner).UploadDocument(draft.Id, File(), "Unknown category") is BadRequestObjectResult, "Browsers cannot invent document-requirement categories");
             var upload = (DocumentResponse)((CreatedAtActionResult)await Docs(owner).UploadDocument(draft.Id, File(), "Supporting letter")).Value!;
             check(upload.RequirementName == "Supporting letter" && (await SubmissionGuard.Check(db, appEntity)).Count == 0, "Categorized stored evidence satisfies the configured requirement");
+            program.RequiredDocuments = "[\"Supporting letter\",\"Invoice\"]"; await db.SaveChangesAsync();
+            bool missingSecondDocument = false;
+            try { await apps.SubmitApplicationAsync(draft.Id); } catch (SubmissionValidationException error) { missingSecondDocument = error.Issues.Any(issue => issue.Contains("Invoice")); }
+            check(missingSecondDocument && await db.WelfareApplications.AnyAsync(a => a.Id == draft.Id && a.Status == 1), "A blocked submission after the first upload preserves an editable draft");
+            var secondUpload = await Docs(owner).UploadDocument(draft.Id, File(), "Invoice");
+            check(secondUpload is CreatedAtActionResult && await db.ApplicationDocuments.CountAsync(d => d.ApplicationId == draft.Id) == 2, "Another required document can be uploaded after the first upload and a blocked submission");
+            check((await SubmissionGuard.Check(db, appEntity)).Count == 0, "All required document categories remain available for final submission");
             check((await apps.SubmitApplicationAsync(draft.Id))?.Status == 2, "A draft passing mandatory requirements submits successfully");
+            program.RequiredDocuments = "[\"Supporting letter\"]"; await db.SaveChangesAsync();
             var repeated = (await apps.CreateApplicationAsync(owner.Id, new() { WelfareProgramId = program.Id, RequestedAmount = 100, Reason = "Repeated evidence for investigation" }))!;
             await Docs(owner).UploadDocument(repeated.Id, File(), "Supporting letter");
             check((await apps.SubmitApplicationAsync(repeated.Id))?.Status == 2, "Duplicate and frequency concerns remain advisory after mandatory checks pass");

@@ -354,6 +354,7 @@ try
         Check(submittedApplications.Count > 0 && submittedApplications.All(a => !string.IsNullOrWhiteSpace(a.WelfareProgram?.Name)),
             "Status application listings retain program names in a fresh request context");
     }
+    await CurrentEligibilityChecks.Run(db, submissionService, Check);
     Console.WriteLine($"{passed} regression checks passed.");
 }
 finally
