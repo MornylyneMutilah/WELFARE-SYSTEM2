@@ -2,7 +2,9 @@
 
 A web application for employee welfare administration, built with **Next.js and TypeScript**, an **ASP.NET Core .NET 10 API**, and **PostgreSQL**. Its central capabilities are configurable welfare rules, a controlled review workflow, and role-scoped record exploration.
 
-The application runs locally and supports five roles: Employee, HR Officer, Welfare Committee Member, Institutional Management, and Administrator. It is a working local platform; public hosting, institutional acceptance and production capacity are not claimed.
+The application runs locally and as an Azure presentation deployment, supporting five roles: Employee, HR Officer, Welfare Committee Member, Institutional Management, and Administrator. The Azure API runs in Production mode with private PostgreSQL and malware scanning. Institutional acceptance and production capacity are not claimed.
+
+**Presentation site:** [Open the Welfare Portal](https://welfare-presentation.thankfulforest-64e9f250.uaenorth.azurecontainerapps.io/login). It uses dummy data and restricted accounts. Idle scale-to-zero can delay the first request; open the site before presenting. See the [Azure deployment and offline recovery runbook](deployment/azure/README.md).
 
 ## What the system does
 
@@ -156,11 +158,11 @@ For regression checks, the ignored local JSON file must contain your development
 
 The dated [15 November timing dataset](docs/verification/performance-2026-11-15.json) contains 30 measured runs per operation after three warm-ups. It measured a small local sequential workload before later session/live-preview fixes; it is not a benchmark of the latest revision or a concurrent-load result.
 
-## Configuration still required before deployment
+## Remaining hosted configuration
 
 - Google and GitHub integrations require private provider credentials and matching callbacks. Unconfigured buttons stay disabled. X is hidden from the interface; inherited backend support remains. Local authorization redirects were checked, but complete live linking/sign-in remains to be verified. See [social sign-in](docs/SOCIAL_SIGN_IN.md).
 - Recovery, verification and invitations use a private development outbox without SMTP. Real email delivery must be configured and tested.
-- Development evidence can be explicitly unscanned when no daemon is configured. Production uploads fail closed without scanning. Provide durable private storage and an operational private scanner.
+- The Azure presentation deployment uses private persistent storage and an operational ClamAV scanner. Two consecutive clean uploads and rejection of a canonical harmless EICAR archive were checked on 23 November 2026. Development evidence can still be explicitly unscanned when no local daemon is configured; Production uploads fail closed without scanning.
 - Use private production secrets, HTTPS, explicit origins, migrated schema, protected database/evidence/mail volumes, verified backups and changed or disabled demonstration credentials.
 - OAuth pending-flow state and maintenance coordination currently assume one API instance. Shared state is required before adding replicas.
 - Targeted HR-assignment notifications and a complete additional-information-request workflow remain incomplete. Administrator dashboard service labels are partly static; use Readiness and health endpoints for actual checks.

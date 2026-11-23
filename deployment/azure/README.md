@@ -39,6 +39,14 @@ Stop any already running local application, then run:
 
 The local app opens at `http://localhost:3000` with its API on port 5249. This Development-only offline mode uses installed local dependencies and permits the existing unscanned development upload behaviour. It must not be exposed publicly. Use the credentials current at the snapshot time. Offline changes are not merged into Azure. Refresh again while online before presenting; test the offline login and documents with the internet disconnected.
 
+If the original local application is already running, keep it and choose unused ports:
+
+```powershell
+./deployment/azure/Start-WelfareOffline.ps1 -FrontendPort 3001 -ApiPort 5253
+```
+
+The completed 23 November 2026 recovery drill used these alternate ports. The Azure snapshot restored into a new local database, all five role logins/dashboard APIs passed, and all six evidence downloads succeeded. The original application remained available on port 3000. The offline frontend binds to loopback; this does not turn the Development API into an externally hardened service.
+
 ## Remaining configuration and cost controls
 
 - Set real SMTP settings before relying on password resets, verification and account invitations. Production deliberately has no development-outbox fallback.

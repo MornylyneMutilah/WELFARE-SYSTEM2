@@ -1,6 +1,8 @@
 # Deployment and release notes
 
-The current verified environment is local. This repository does not claim a public production deployment, institutional pilot, formal UAT or certified concurrent-user capacity.
+Local verification is supplemented by an Azure presentation deployment checked on 23 November 2026. Hosted HTTPS pages, all five role logins/dashboard APIs, employee denial from administrator APIs, and authorized access to all six imported evidence files passed. Production ClamAV accepted consecutive clean uploads and rejected a canonical harmless EICAR archive. Institutional pilot, formal UAT and certified concurrent-user capacity are not claimed.
+
+A coordinated hosted snapshot was downloaded, hash-verified and restored into a new local database. All five offline role logins/dashboard APIs, the restored database identity, frontend CORS and six offline evidence downloads passed. The original local database and application were preserved. The first export attempt exposed an Azure Files timestamp-copy restriction; the corrected transfer image copies content and verifies hashes without trying to preserve unsupported POSIX metadata.
 
 ## Build and run
 

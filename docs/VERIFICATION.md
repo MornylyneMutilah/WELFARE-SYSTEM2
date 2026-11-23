@@ -45,4 +45,20 @@ The measurements predate the tab-session and live-eligibility fixes and therefor
 
 ## Outstanding evaluation
 
-Formal role-representative UAT, accessibility/assistive-technology coverage, live provider account linking, actual SMTP inbox delivery, an operational private malware scanner, representative anomaly labels, sustained/concurrent load and production recovery objectives require further evidence. Synthetic scanner/model tests do not substitute for those operational evaluations.
+Formal role-representative UAT, accessibility/assistive-technology coverage, live provider account linking, actual SMTP inbox delivery, representative anomaly labels, sustained/concurrent load and production recovery objectives require further evidence. Synthetic model tests do not substitute for those operational evaluations.
+
+## Azure presentation and recovery checks — 23 November 2026
+
+The manually dispatched GitHub container builds succeeded for the API, frontend, Caddy gateway and transfer job. The hosted API runs in Production mode against private PostgreSQL 18, with private Azure Files evidence and ClamAV. The newer B2ats v2 database size was used after B1ms provisioning was rejected in UAE North and Switzerland North; it consumes student credit.
+
+- Public HTTPS liveness/readiness, login and registration pages responded successfully.
+- Employee, HR Officer, Committee Member, Management and Administrator logins and their dashboard APIs passed.
+- Employee requests to administrator user management and dashboard APIs returned 403.
+- All six imported evidence files were available through authorized downloads; anonymous downloads returned 401.
+- Two successive clean uploads were stored with `ClamAV clean` status. A supported archive containing the canonical harmless EICAR test was rejected. Temporary test documents were removed while retaining the audit trail. An earlier noncanonical PNG-wrapped probe was accepted and removed; it was not counted as a successful antivirus-rejection test.
+- The first snapshot export found an Azure Files metadata/timestamp-copy permission restriction. The corrected image copied content and verified SHA-256 hashes; the subsequent export succeeded.
+- The coordinated snapshot downloaded and passed checksum validation, then restored into a new local database. Record counts and evidence hashes matched before selecting the offline copy.
+- Offline logins and dashboard APIs passed for all five roles. The database identity and CORS origin matched the separate offline configuration, and all six local evidence downloads passed. The original local database and port-3000 application were preserved.
+- The 279 rollback-based backend checks, six frontend session tests and frontend lint passed again during deployment. Actual Linux container builds include API publish and frontend production compilation.
+
+These are operator smoke/recovery checks with dummy data, not formal institutional UAT, a fresh performance benchmark or proof of production capacity. SMTP delivery and hosted provider credentials/callbacks remain separate setup items. Private runtime reports and credentials are deliberately excluded from Git.
