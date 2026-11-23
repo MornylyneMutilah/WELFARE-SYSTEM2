@@ -3,7 +3,7 @@ param(
     [ValidateSet('Storage','Import','Application','Export')][string]$Stage,
     [string]$SnapshotId,
     [string]$StateDirectory='logs/azure-deployment',
-    [string]$ImageTag='demo-20261123-1',
+    [string]$ImageTag='demo-20261123-2',
     [string]$SnapshotDirectory='backups/azure-presentation-initial'
 )
 $ErrorActionPreference='Stop'

@@ -97,13 +97,17 @@ if (-not (Exists-Azure @('postgres','flexible-server','db','show','-g',$Resource
     Invoke-Azure @('postgres','flexible-server','db','create','-g',$ResourceGroup,'-s',$database,'-n','WelfareDb')
 }
 $envInfo = Read-Azure @('containerapp','env','show','-g',$ResourceGroup,'-n',$environment)
+$stateFile = Join-Path $stateRoot 'infrastructure.json'
+$previous = if (Test-Path -LiteralPath $stateFile) { Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json } else { $null }
+if ($previous -and ($previous.environmentId -ne $envInfo.id -or $previous.databaseHost -ne $server.fullyQualifiedDomainName)) { throw 'Existing deployment state belongs to another environment; choose a new state directory.' }
 $state = [ordered]@{
     subscriptionId=$account.id;resourceGroup=$ResourceGroup;location=$Location
     environment=$environment;environmentId=$envInfo.id;defaultDomain=$envInfo.properties.defaultDomain
     registry=$registry;registryServer=$acr.loginServer;storageAccount=$storage
     pullIdentity=$pull.id;databaseServer=$database;databaseHost=$server.fullyQualifiedDomainName
     databaseName='WelfareDb';databaseAdministrator='welfare_admin';databasePublicAccess=$server.network.publicNetworkAccess
-    schemaImported=$false;documentsImported=$false;applicationDeployed=$false
+    schemaImported=[bool]$previous.schemaImported;documentsImported=[bool]$previous.documentsImported;applicationDeployed=[bool]$previous.applicationDeployed
 }
-$state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $stateRoot 'infrastructure.json') -Encoding utf8
+if ($previous.publicOrigin) { $state.publicOrigin = $previous.publicOrigin }
+$state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $stateFile -Encoding utf8
 Write-Output 'Infrastructure created; database is private. Migration and application deployment are still required.'

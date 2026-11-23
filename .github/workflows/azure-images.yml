@@ -6,7 +6,7 @@ on:
       image_tag:
         description: Image tag for this reviewed deployment
         required: true
-        default: demo-20261123-1
+        default: demo-20261123-2
 
 permissions:
   contents: read

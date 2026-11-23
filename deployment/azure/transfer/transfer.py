@@ -97,7 +97,9 @@ def export_snapshot():
     evidence = destination/'Documents'
     evidence.mkdir()
     for entry in entries:
-        shutil.copy2(DOCUMENTS/entry['file'], evidence/entry['file'])
+        # Azure Files does not permit this container user to preserve POSIX
+        # timestamps. Evidence identity is verified by SHA-256, not file metadata.
+        shutil.copyfile(DOCUMENTS/entry['file'], evidence/entry['file'])
         if sha(evidence/entry['file']) != entry['sha256']:
             raise RuntimeError('Evidence changed during snapshot creation.')
     manifest = {'createdAtUtc':datetime.now(timezone.utc).isoformat(), 'databaseFile':'WelfareDb.dump', 'databaseSha256':sha(dump), 'rowCounts':counts(), 'evidence':entries, 'restoreTested':False}
@@ -106,7 +108,8 @@ def export_snapshot():
 
 if os.environ.get('PGDATABASE') != 'WelfareDb':
     raise RuntimeError('Only the configured WelfareDb presentation database is supported.')
-os.environ['PGSSLMODE'] = 'require'
+os.environ['PGSSLROOTCERT'] = 'system'
+os.environ['PGSSLMODE'] = 'verify-full'
 mode = os.environ.get('MODE')
 if mode == 'import': import_data()
 elif mode == 'export': export_snapshot()
