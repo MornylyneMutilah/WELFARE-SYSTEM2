@@ -57,11 +57,11 @@ A fresh Production database is not seeded with demonstration accounts. Administr
 
 Hosting account, domain/origins, data migration, proxy configuration, scanner and email delivery must be resolved before the hosted end-to-end workflow can be verified. Container builds require Docker; do not represent a local Next.js or .NET build as a tested container build.
 
-## Verify the deployment
+## Azure presentation configuration
 
-### Azure presentation configuration
+See [the Azure deployment runbook](../deployment/azure/README.md) for the current scripts, build workflow, private migration and Azure-to-laptop refresh procedure. The legacy free B1ms size was rejected in two permitted regions during provisioning; the selected newer `Standard_B2ats_v2` size consumes student credit. Verify actual resource state and the hosted smoke checks before declaring the site ready.
 
-The presentation deployment targets the Azure for Students allowance for PostgreSQL Flexible Server B1ms with 32 GiB storage, seven-day local backup retention and no high-availability standby. The portal must confirm the subscription allowance and permitted region before server creation; charges may apply beyond free amounts. This is a demonstration sizing choice, not a capacity guarantee for institutional production.
+The presentation database uses 32 GiB storage, seven-day local backup retention and no high-availability standby. PostgreSQL, registry, persistent storage and application usage can consume student credit. This is a demonstration sizing choice, not a capacity guarantee for institutional production.
 
 The proposed Container Apps deployment groups the frontend, API, private ClamAV scanner and a small Caddy gateway in a single replica. Only gateway port 8080 is exposed through HTTPS-enforced Azure ingress. The frontend uses port 3000, the API is overridden to port 8081, and the scanner uses port 3310. The gateway definition is in `deployment/azure/gateway`. Using a single public origin for `/api` and the frontend preserves browser-bound social-authentication cookies; build the frontend with `NEXT_PUBLIC_API_URL=/api` and configure both API public-origin settings to that same HTTPS origin.
 
@@ -69,7 +69,9 @@ The API processes forwarded HTTPS information only from the framework's default 
 
 Mount private persistent Azure Files storage for API documents and pending mail. Configure startup/readiness probes for all containers, including the scanner; downloading scanner definitions can delay cold starts. Scale-to-zero reduces unused compute, but prepare and test the app before a presentation and retain only one replica because OAuth flow state is in memory. Registry, file operations, logs and compute beyond free allowances may still consume student credit.
 
-Azure becomes the primary database only after a verified migration. A subsequent Azure-to-laptop refresh must preserve a dated local database/evidence backup, restore into a separate staging database, verify record and file integrity, and switch the offline application only after verification. Offline changes are not automatically merged back. The refresh process and hosted migration are not yet implemented by these configuration files.
+Azure becomes the primary database only after a verified migration. The controlled Azure-to-laptop refresh retains dated snapshots, restores into a separate local database, verifies record and file integrity, and switches the offline application only after verification. The original local database and earlier snapshots remain available. Offline changes are not automatically merged back. The scripts require a successful hosted recovery drill before relying on this process.
+
+## Verify the deployment
 
 1. Confirm the exact tested source commit and build/configuration used by the processes.
 2. Check the login page, `GET /health/live` and `GET /health/ready`.
@@ -83,7 +85,7 @@ Readiness checks database/schema/maintenance conditions. It does not certify ema
 
 The existing GitHub source branch is `master`; use the remote branch actually reviewed and tested. If the academic/release process requires `main`, create and review that release source explicitly and configure hosting accordingly; do not assume a branch rename or automatic deployment has occurred.
 
-Record a final commit or tag, test completed changes before publishing, and verify the running build matches that identifier. Local startup is manual; no automatic hosting integration is configured by these instructions.
+Record a final commit or tag, test completed changes before publishing, and verify the running build matches that identifier. The Azure image build workflow is manually dispatched; source pushes do not automatically replace the running site. Local startup remains manual.
 
 Retain a previously verified build/configuration and coordinated database/evidence backup. Restore only through an approved recovery procedure with integrity and access checks. Never point an isolated restore test at the live source database. The provided scripts create a uniquely named test database and can remove only that test target.
 

@@ -3,6 +3,7 @@ param(
     [string]$ResourceGroup = 'rg-welfare-demo',
     [string]$Location = 'uaenorth',
     [string]$Prefix = 'welfare-morny-demo',
+    [string]$DatabaseSku = 'Standard_B1ms',
     [string]$StateDirectory = 'logs/azure-deployment'
 )
 $ErrorActionPreference = 'Stop'
@@ -84,7 +85,7 @@ if (-not $roles) {
 if (-not (Exists-Azure @('postgres','flexible-server','show','-g',$ResourceGroup,'-n',$database))) {
     $password = Get-PrivateValue 'postgres-admin'
     $zone = Read-Azure @('network','private-dns','zone','show','-g',$ResourceGroup,'-n',$dns)
-    Invoke-Azure @('postgres','flexible-server','create','-g',$ResourceGroup,'-n',$database,'-l',$Location,'--sku-name','Standard_B1ms','--tier','Burstable','--storage-size','32','--version','18','--backup-retention','7','--geo-redundant-backup','Disabled','--zonal-resiliency','Disabled','--subnet',($network.id+'/subnets/postgres'),'--private-dns-zone',$zone.id,'--admin-user','welfare_admin','--admin-password',$password,'--yes')
+    Invoke-Azure @('postgres','flexible-server','create','-g',$ResourceGroup,'-n',$database,'-l',$Location,'--sku-name',$DatabaseSku,'--tier','Burstable','--storage-size','32','--version','18','--backup-retention','7','--geo-redundant-backup','Disabled','--zonal-resiliency','Disabled','--subnet',($network.id+'/subnets/postgres'),'--private-dns-zone',$zone.id,'--admin-user','welfare_admin','--admin-password',$password,'--yes')
     $password = $null
 }
 $server = Read-Azure @('postgres','flexible-server','show','-g',$ResourceGroup,'-n',$database)
@@ -92,8 +93,8 @@ if (-not (Exists-Azure @('containerapp','env','show','-g',$ResourceGroup,'-n',$e
     Invoke-Azure @('containerapp','env','create','-g',$ResourceGroup,'-n',$environment,'-l',$Location,'--enable-workload-profiles','true','--infrastructure-subnet-resource-id',($network.id+'/subnets/apps'),'--logs-destination','none')
 }
 Write-Output 'Container Apps environment is available.'
-if (-not (Exists-Azure @('postgres','flexible-server','db','show','-g',$ResourceGroup,'-s',$database,'-d','WelfareDb'))) {
-    Invoke-Azure @('postgres','flexible-server','db','create','-g',$ResourceGroup,'-s',$database,'-d','WelfareDb')
+if (-not (Exists-Azure @('postgres','flexible-server','db','show','-g',$ResourceGroup,'-s',$database,'-n','WelfareDb'))) {
+    Invoke-Azure @('postgres','flexible-server','db','create','-g',$ResourceGroup,'-s',$database,'-n','WelfareDb')
 }
 $envInfo = Read-Azure @('containerapp','env','show','-g',$ResourceGroup,'-n',$environment)
 $state = [ordered]@{
