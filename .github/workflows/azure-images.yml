@@ -1,0 +1,55 @@
+name: Build Azure presentation images
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag for this reviewed deployment
+        required: true
+        default: demo-20261123-1
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: welfare-api
+            context: backend/WelfareSystem.Api
+          - image: welfare-frontend
+            context: frontend
+          - image: welfare-gateway
+            context: deployment/azure/gateway
+          - image: welfare-transfer
+            context: deployment/azure/transfer
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      REGISTRY_NAME: ${{ vars.AZURE_REGISTRY_NAME }}
+      REGISTRY_SERVER: ${{ vars.AZURE_REGISTRY_SERVER }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sign in with repository-bound Azure identity
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_BUILD_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push image
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          BUILD_CONTEXT: ${{ matrix.context }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]
+          test -n "$REGISTRY_NAME"
+          test -n "$REGISTRY_SERVER"
+          az acr login --name "$REGISTRY_NAME"
+          docker build --pull --build-arg NEXT_PUBLIC_API_URL=/api --tag "$REGISTRY_SERVER/$IMAGE_NAME:$IMAGE_TAG" "$BUILD_CONTEXT"
+          docker push "$REGISTRY_SERVER/$IMAGE_NAME:$IMAGE_TAG"

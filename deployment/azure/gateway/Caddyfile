@@ -1,0 +1,26 @@
+{
+    admin off
+    auto_https off
+}
+
+# Azure ingress must enforce HTTPS (allowInsecure: false). Only this gateway
+# is exposed. The frontend, API and scanner share the app's private loopback.
+:8080 {
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8081 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle /health/* {
+        reverse_proxy 127.0.0.1:8081 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+}

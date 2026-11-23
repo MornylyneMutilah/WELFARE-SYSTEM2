@@ -38,7 +38,38 @@ The browser setting `NEXT_PUBLIC_API_URL` is public and embedded during frontend
 
 Production startup requires a migrated schema and rejects active default demonstration passwords. Replace or disable those accounts before exposure. Production uploads fail closed without configured scanning; production account delivery has no development-outbox fallback.
 
+## Portable container builds
+
+Container definitions are supplied for each application, with the build context set to that application's directory:
+
+```sh
+docker build -t welfare-api ./backend/WelfareSystem.Api
+docker build --build-arg NEXT_PUBLIC_API_URL=https://api.example.org/api -t welfare-frontend ./frontend
+```
+
+Replace the example API address with the real HTTPS origin before building the frontend. The frontend image uses Node.js 24 and Next.js standalone output; ordinary local builds continue to support `npm start`. The API image uses the .NET 10 runtime, Production mode and port 8080. Both runtime images run as an unprivileged user. Private local settings, local evidence and environment files are excluded from their build contexts by the application-specific `.dockerignore` files.
+
+The images alone do not provision a database or constitute a complete deployment. Set the API secrets listed above through the hosting provider. Attach a private persistent volume at `/app/App_Data` with write permission for the API container user (UID 1654), preserving evidence and queued mail together. Provision PostgreSQL and a private ClamAV service, and apply migrations to the intended hosting database before API startup. Keep one API replica until pending OAuth flows, maintenance coordination and storage support multiple instances.
+
+Configure HTTPS termination and trusted forwarding for the selected host before public exposure; forwarded headers must not be trusted from arbitrary internet clients. Frontend and API origins must also satisfy the OAuth cookie same-site requirements. Configure exact Google/GitHub HTTPS callback URLs in the provider applications after the public origin is known.
+
+A fresh Production database is not seeded with demonstration accounts. Administrator provisioning or a controlled migration of the intended accounts must be planned before launch. Existing local records and evidence must not be copied to a public host without deciding which demonstration data should be included. Never deploy the ignored local configuration file or reuse the development demonstration password.
+
+Hosting account, domain/origins, data migration, proxy configuration, scanner and email delivery must be resolved before the hosted end-to-end workflow can be verified. Container builds require Docker; do not represent a local Next.js or .NET build as a tested container build.
+
 ## Verify the deployment
+
+### Azure presentation configuration
+
+The presentation deployment targets the Azure for Students allowance for PostgreSQL Flexible Server B1ms with 32 GiB storage, seven-day local backup retention and no high-availability standby. The portal must confirm the subscription allowance and permitted region before server creation; charges may apply beyond free amounts. This is a demonstration sizing choice, not a capacity guarantee for institutional production.
+
+The proposed Container Apps deployment groups the frontend, API, private ClamAV scanner and a small Caddy gateway in a single replica. Only gateway port 8080 is exposed through HTTPS-enforced Azure ingress. The frontend uses port 3000, the API is overridden to port 8081, and the scanner uses port 3310. The gateway definition is in `deployment/azure/gateway`. Using a single public origin for `/api` and the frontend preserves browser-bound social-authentication cookies; build the frontend with `NEXT_PUBLIC_API_URL=/api` and configure both API public-origin settings to that same HTTPS origin.
+
+The API processes forwarded HTTPS information only from the framework's default trusted loopback proxies. The gateway supplies the HTTPS scheme after Azure ingress enforces it. Do not expose the API port directly or enable unrestricted forwarded-header trust. The gateway configuration assumes the containers share one Container Apps replica; it is not a configuration for separate machines.
+
+Mount private persistent Azure Files storage for API documents and pending mail. Configure startup/readiness probes for all containers, including the scanner; downloading scanner definitions can delay cold starts. Scale-to-zero reduces unused compute, but prepare and test the app before a presentation and retain only one replica because OAuth flow state is in memory. Registry, file operations, logs and compute beyond free allowances may still consume student credit.
+
+Azure becomes the primary database only after a verified migration. A subsequent Azure-to-laptop refresh must preserve a dated local database/evidence backup, restore into a separate staging database, verify record and file integrity, and switch the offline application only after verification. Offline changes are not automatically merged back. The refresh process and hosted migration are not yet implemented by these configuration files.
 
 1. Confirm the exact tested source commit and build/configuration used by the processes.
 2. Check the login page, `GET /health/live` and `GET /health/ready`.

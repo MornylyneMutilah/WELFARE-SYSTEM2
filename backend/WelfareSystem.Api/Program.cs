@@ -10,6 +10,7 @@ using WelfareSystem.Api.Services;
 using WelfareSystem.Api.Services.Interfaces;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,11 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+
+// The deployment gateway shares the container app's loopback network. Keep the
+// framework's loopback-only trust defaults; do not trust arbitrary proxy IPs.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto);
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -173,6 +179,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 

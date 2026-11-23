@@ -1,0 +1,17 @@
+bin
+obj
+.git
+.env*
+appsettings.Local.json
+appsettings.Development.json
+App_Data
+uploads
+backups
+logs
+*.log
+*.pem
+*.key
+*.pfx
+**/*.pem
+**/*.key
+**/*.pfx
