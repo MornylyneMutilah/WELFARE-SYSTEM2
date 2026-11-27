@@ -181,4 +181,4 @@ The dated [15 November timing dataset](docs/verification/performance-2026-11-15.
 - [Social sign-in](docs/SOCIAL_SIGN_IN.md) — server configuration and exact callbacks.
 - [Verification](docs/VERIFICATION.md) — executed checks, repeatable commands and dated evidence.
 
-Superseded planning/status notes have been removed from the current source tree. Academic Word reports, presentation files, private logs and credentials remain local and are excluded from Git. Git history still retains earlier committed documentation.
+Academic Word reports, presentation files and generated report PDFs have been removed from the project folder and are excluded from Git. This repository retains the application source and technical/operating guides. Private logs and credentials are excluded from Git. Git history still retains earlier committed documentation.

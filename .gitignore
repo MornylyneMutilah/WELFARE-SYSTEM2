@@ -98,9 +98,11 @@ appsettings.Local.json
 App_Data/
 backups/
 
-# Academic deliverables and generated document helpers stay local.
+# Academic deliverables and generated document helpers are excluded.
 # Maintain source/deployment documentation in docs/*.md instead of draft binaries.
 /docs/*.docx
+/docs/*.doc
 /docs/*.pptx
+/docs/*.ppt
 /docs/*.pdf
 /docs/create_presentation_guide.py
